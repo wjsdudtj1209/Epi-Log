@@ -15,3 +15,6 @@ dist-ssr
 !.vscode/extensions.json
 
 .vercel
+
+# 루트 검증용 스크린샷(작업 흔적)
+/*.png
