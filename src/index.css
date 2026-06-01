@@ -1,0 +1,213 @@
+/* 1) Pretendard 폰트 불러오기 (기획서 스타일 가이드 지정 폰트) */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
+/* 1-2) TAN-PEARL 폴백용 고급 디스플레이 세리프(Playfair Display) */
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..700&display=swap");
+/* 1-3) Inter (Figma의 H2/H3 텍스트 스타일에서 사용) */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
+
+/* 2) Tailwind CSS v4 불러오기 */
+@import "tailwindcss";
+
+/* 2-1) Figma에서 추출한 디자인 토큰 (색상 + 타이포). src/theme.js 와 짝을 이룹니다. */
+@import "./theme.css";
+
+/* 3) Tailwind 색상/폰트 토큰.
+      ★ 헥스를 직접 쓰지 않고, theme.css 의 primitive 변수를 var()로 '연결'합니다.
+      (실제 색 값은 src/theme.css 한 곳에서만 관리 → 중복 없음) */
+@theme {
+  /* 색상 — 친숙한 이름 → Figma/브랜드 primitive 연결 */
+  --color-paper: var(--brand-paper); /* 메인 밝은 배경 */
+  --color-ink: var(--figma-fill-background); /* 다크 섹션 배경 (fill/background) */
+  --color-cream: var(--brand-cream); /* 다크 위 밝은 텍스트(거의 흰 크림) */
+  --color-cream-warm: var(--figma-text-log-default); /* 따뜻한 크림 (text/log default) */
+  --color-gold: var(--figma-text-log-default-2); /* 포인트 골드 (text/log default2) */
+  --color-gold-bright: var(--figma-text-light); /* 밝은 골드 강조 (text/light) */
+  --color-gold-soft: var(--figma-sub-opacity); /* 서브 골드 (sub opacity) */
+  --color-gold-pale: var(--figma-text-log-opacity); /* 옅은 골드 (text/log opacity) */
+  --color-gold-stroke: var(--figma-log-stroke); /* 외곽선용 투명 골드 (log stroke) */
+  --color-honey: var(--figma-text-title); /* 허니/제목 (text/Title = 하단 글씨) */
+  --color-amber: var(--brand-amber); /* 딥 앰버 강조 */
+  --color-rust: var(--figma-rust); /* 번트오렌지 (Overview 제목, Figma text/subtitle 최신값) */
+  --color-notification: var(--figma-notification); /* 알림 카드 배경색 (보통 /32 투명도로 사용) */
+  --color-glow: var(--brand-glow); /* 반구(아치) 장식 글로우 */
+  --color-arch-fill: var(--figma-arch-fill); /* (예비) 곡선 원 채우기 후보색 — 현재는 bg-paper 사용 */
+  --color-mockup-bg: var(--figma-arch-fill); /* Mockup/Section 1 섹션 배경 #FBFBFB (arch-fill primitive 재사용) */
+  --color-arch-stroke: var(--figma-arch-stroke); /* Background 곡선 원 테두리 (보통 /29 투명도로 사용) */
+  --color-arch-glow-inner: var(--figma-arch-glow-inner); /* Background 곡선 글로우 안쪽 (56%) */
+  --color-arch-glow-outer: var(--figma-arch-glow-outer); /* Background 곡선 글로우 바깥 (20%) */
+  --color-dot-glow-outer: var(--figma-dot-glow-outer); /* 타임라인 빛점 외부 글로우 (100%) */
+  --color-dot-glow-inner: var(--figma-dot-glow-inner); /* 타임라인 빛점 내부 글로우 (56%) */
+  --color-accent: var(--figma-arch-stroke); /* 강조 오렌지 #FFA411 (arch-stroke와 동일값 재사용) */
+  --color-muted: var(--figma-ds-muted); /* Design System muted 텍스트 #DACDBC */
+  --color-tan: var(--figma-ds-tan); /* Design System tan #BCA26C */
+  --color-ds-dot: var(--figma-ds-dot); /* Design System 점(Dot) 채움 #FFAE2B */
+  --color-ds-line: var(--figma-ds-line); /* Design System 선(Line) 상단 오렌지 #F58F0A */
+  --color-kf-bg: var(--figma-kf-bg); /* Key Function 섹션 배경 #EFECEC */
+  --color-kf-label: var(--figma-kf-label); /* KEY FUNCTION 라벨 #A04B00 */
+  --color-kf-overlay: var(--figma-kf-overlay); /* 다크 카드 오버레이 #2A2525 */
+  --color-kf-phone-1: var(--figma-kf-phone-1); /* 폰 영역 그라데이션 위 #EFEFEF */
+  --color-kf-phone-2: var(--figma-kf-phone-2); /* 폰 영역 그라데이션 아래 #B6B0B0 */
+  --color-box: var(--figma-box); /* 다크 메시지 카드 배경 (Desk Research 맺음) */
+  --color-brown: var(--figma-text-subtitle); /* 라벨용 브라운 (text/subtitle) */
+  --color-brown-deep: var(--figma-subtitle); /* 더 진한 브라운 (subtitle) */
+
+  /* 폰트 패밀리 */
+  --font-sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  --font-pretendard: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  --font-inter: "Inter", system-ui, sans-serif; /* Figma H2/H3 */
+  /* 디스플레이용 세리프: TAN-PEARL(있으면) → Playfair(폴백) → 한글은 Pretendard로 */
+  --font-tan: "TAN-PEARL", "Playfair Display", "Pretendard Variable", serif;
+
+  /* 타이포 스케일 (글자 크기 + 줄 간격). Figma 텍스트 스타일에서 추출.
+     사용 예) <h1 className="font-pretendard text-h1 font-bold"> */
+  --text-t1: 2.1875rem; /* 35px — TAN-PEARL 디스플레이 */
+  --text-t1--line-height: 1.2;
+  --text-h1: 3.25rem; /* 52px */
+  --text-h1--line-height: 1.2;
+  --text-h2: 1.125rem; /* 18px */
+  --text-h2--line-height: 1.2;
+  --text-h3: 1rem; /* 16px */
+  --text-h3--line-height: 1.2;
+  --text-p1: 1rem; /* 16px — 본문 large */
+  --text-p1--line-height: 1.6;
+  --text-p2: 0.875rem; /* 14px — 본문 */
+  --text-p2--line-height: 1.6;
+  --text-p3: 0.75rem; /* 12px — 캡션 */
+  --text-p3--line-height: 1.6;
+
+  /* Background 섹션 타이포 (Figma Head/* 스타일, node 1380:13318) — 모두 Pretendard */
+  --text-section: 1.0625rem; /* 17px — 섹션 라벨 (Head/Section-SemiBold) */
+  --text-section--line-height: 1.5;
+  --text-section--letter-spacing: 0.34px; /* Figma letter-spacing 2 (=17px의 2% ≈ 0.34px) */
+  --text-display: 2.25rem; /* 36px — 큰 제목 (Head/H2-Bold) */
+  --text-display--line-height: 1.4;
+  --text-headline: 2rem; /* 32px — 맺음 문구 (Head/H2-SemiBold) */
+  --text-headline--line-height: 1.4;
+  --text-lead: 1.0625rem; /* 17px — 설명문 (Head/Body/p1-SemiBold, weight 500) */
+  --text-lead--line-height: 1.4;
+  --text-noti: 1.375rem; /* 22px — 알림 카드 (Head/Notification-Medium) */
+  --text-noti--line-height: 1.45;
+
+  /* 끊김 없는 무한 마키(ticker) 애니메이션.
+     트랙을 두 번 복제한 뒤 정확히 절반(-50%)만큼 이동하면 이음새 없이 반복됩니다.
+     (각 아이템은 flex-gap 대신 margin-right로 간격을 줘야 -50%가 딱 맞습니다.) */
+  --animate-marquee: marquee 18s linear infinite;
+  /* 같은 marquee 키프레임 재사용, 더 차분한 속도(Design System Icons 스트립용) */
+  --animate-marquee-slow: marquee 25s linear infinite;
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+/* 4) 페이지 전체 기본 모습 */
+html {
+  scroll-behavior: smooth; /* 메뉴 클릭 시 부드럽게 이동 */
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-paper);
+  color: #26211c; /* 밝은 배경 위 기본 본문 색 (따뜻한 짙은 회색) */
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(254, 185, 81, 0.35);
+}
+
+/* TAN-PEARL 디스플레이 세리프.
+   src/assets/fonts/ 의 실제 파일을 Vite가 번들링하도록 '상대경로'로 참조합니다.
+   사용자가 넣은 내폰트파일.woff2(웹 최적)를 우선 사용하고, 함께 있는 ttf를 폴백으로 둡니다.
+   font-weight를 400~700 범위로 선언해, 굵게(font-bold) 써도 가짜 볼드 없이
+   원본 글자 그대로 또렷하게 렌더됩니다. */
+@font-face {
+  font-family: "TAN-PEARL";
+  src:
+    url("./assets/fonts/내폰트파일.woff2") format("woff2"),
+    url("./assets/fonts/TAN-Pearl-Regular.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 5) 리퀴드 글라스(liquid-glass) 텍스처.
+      거의 투명한 배경 + 블러 + 안쪽 하이라이트로 '유리' 질감을 만들고,
+      ::before 의사요소로 위/아래가 밝은 1.4px 그라데이션 테두리를 그립니다.
+      (border-radius는 적용 요소에서 상속하므로, rounded-full 등을 함께 줘야 합니다.) */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.01);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0.45) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* 6) 강화 리퀴드 글라스 — 밝은/어두운 배경 위 어디서나 보이도록 살짝 어둡게.
+      플로팅 버튼처럼 다양한 섹션 위에 떠 있는 요소에 사용합니다. */
+.liquid-glass-strong {
+  background: rgba(20, 15, 11, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-glass-strong::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0) 45%,
+    rgba(255, 255, 255, 0.5) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* 7) 섹션 이음새용 둥근 모서리 반경 (자유롭게 튜닝).
+      RoundedSection 컴포넌트가 기본값으로 이 변수를 사용합니다.
+      모바일(좁은 화면)에선 비율이 자연스럽도록 더 작게. */
+:root {
+  --seam-radius: 40px;
+}
+@media (max-width: 640px) {
+  :root {
+    --seam-radius: 24px;
+  }
+}

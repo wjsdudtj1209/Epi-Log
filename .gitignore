@@ -1,0 +1,17 @@
+# 의존성 폴더 (npm install 시 자동 생성)
+node_modules
+
+# 빌드 결과물
+dist
+dist-ssr
+
+# 로그/캐시
+*.log
+.vite
+
+# 에디터/OS 파일
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+.vercel
