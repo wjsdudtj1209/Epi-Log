@@ -18,7 +18,7 @@ const SERVICE_SCREENS = ["/mk-start1.png", "/mk-start2.png", "/mk-start3.png", "
 // 모든 폰 공통 '균일' 드롭섀도(대각선 오프셋 없음 → 기울어 보이지 않음).
 // PhoneFrame은 filter 문자열, StaticPhone은 Tailwind 임의값('_'=공백).
 const PHONE_SHADOW = "drop-shadow(0 20px 40px rgba(41,36,34,0.22))";
-const PHONE_SHADOW_CLASS = "drop-shadow-[0_20px_40px_rgba(41,36,34,0.22)]";
+export const PHONE_SHADOW_CLASS = "drop-shadow-[0_20px_40px_rgba(41,36,34,0.22)]";
 
 // ▼▼▼ 폰별 스케일 — 여기 숫자만 바꿔서 개별 조정 ▼▼▼ (SERVICE는 1.0=원래대로)
 const MK = {
@@ -37,8 +37,8 @@ const BASE = {
   aiReport: { w: 247, h: 537, left: 460, top: 457 },
 };
 
-// 스케일을 '중심 고정'으로 적용(커져도 폰 중심이 그대로 → 라벨과의 균형 유지).
-function place(b, s) {
+// 스케일을 '중심 고정'으로 적용(커져도 폰 중심이 그대로 → 세로/가로 균형 유지, 라벨과 정렬).
+export function place(b, s) {
   return {
     width: b.w * s,
     height: b.h * s,
@@ -56,11 +56,11 @@ const AIR = place(BASE.aiReport, MK.aiReportScale);
  *  - eyebrow 17 SemiBold #A04B00 자간0.02 / title 36 Bold #140F0B lh140 / body 18 Regular #140F0B lh160 자간-0.02 폭355
  *  - 간격: eyebrow→그룹 30px, title→body 20px. break-keep으로 한국어 단어깨짐 방지.
  */
-function ClusterLabel({ eyebrow, title, body }) {
+export function ClusterLabel({ eyebrow, title, body, bodyWidth = 355 }) {
   return (
     <div className="flex flex-col gap-[30px]">
       <p className="font-pretendard text-[17px] font-semibold tracking-[0.02em] text-kf-label">{eyebrow}</p>
-      <div className="flex w-[355px] flex-col gap-[20px]">
+      <div className="flex flex-col gap-[20px]" style={{ width: bodyWidth }}>
         <h3 className="font-pretendard text-[36px] font-bold leading-[1.4] break-keep text-ink">{title}</h3>
         <p className="font-pretendard text-[18px] font-normal leading-[1.6] tracking-[-0.02em] break-keep text-ink">
           {body}
@@ -74,7 +74,7 @@ function ClusterLabel({ eyebrow, title, body }) {
  * StaticPhone: 베젤 포함 export 이미지를 absolute로 정확히 배치.
  * object-contain으로 지정한 width×height 박스 안에 비율 유지하며 담음(왜곡 없음).
  */
-function StaticPhone({ src, alt, left, top, width, height, shadow }) {
+export function StaticPhone({ src, alt, left, top, width, height, shadow }) {
   return (
     <img
       src={src}
@@ -127,7 +127,7 @@ export default function MockupSection() {
         {/* ── 클러스터 3: AI AGENT ── 라벨(330,120) / 폰 에이전트(825,111)·리포트(460,457) + 글로우(209,40)
             Figma 프레임 높이는 424지만, 리포트 폰(top457+537=994)이 아래로 넘쳐서 잘리지 않도록 높이를 994로 확장(=Figma 하단 여유). */}
         <Reveal className="relative h-[994px]">
-          {/* 장식 글로우: honey(#FFD99D) radial → 투명, 320px, opacity .85, blur 70. 폰 뒤(z-0), 따뜻한 광원. */}
+          {/* 장식 글로우: honey(#FFD99D) radial → 투명, 320px. 농도 통일(코어 30%/72%, opacity 1, blur 95). 폰 뒤(z-0). */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute z-0"
@@ -136,9 +136,9 @@ export default function MockupSection() {
               top: 40,
               width: 320,
               height: 320,
-              background: "radial-gradient(circle, var(--color-honey), transparent 70%)",
-              opacity: 0.85,
-              filter: "blur(70px)",
+              background: "radial-gradient(circle, var(--color-honey) 0%, var(--color-honey) 30%, transparent 72%)",
+              opacity: 1,
+              filter: "blur(95px)",
             }}
           />
           <div className="absolute z-10" style={{ left: 330, top: 120 }}>

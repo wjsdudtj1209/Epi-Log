@@ -16,6 +16,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 export const colors = {
   fillBackground:  { var: "--figma-fill-background",   value: "#140F0B",   figma: "fill/background" }, // 다크 배경
+  night:           { var: "--figma-night",             value: "#050504",   figma: "딥 나이트 베이스" }, // Hero 하단 페이드 / IntroQuote / VideoSection 배경(거의 블랙)
   textTitle:       { var: "--figma-text-title",        value: "#FFD99D",   figma: "text/Title" },      // 제목
   textSubtitle:    { var: "--figma-text-subtitle",     value: "#682E00",   figma: "text/subtitle" },   // 소제목(브라운)
   rust:            { var: "--figma-rust",              value: "#BD5400",   figma: "text/subtitle (Overview, node 1380:13317)" }, // Overview 제목 — text/subtitle 최신값(번트오렌지)

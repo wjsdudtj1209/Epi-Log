@@ -72,7 +72,7 @@ function ConnectorArrow() {
 export default function DesignSystemSection() {
   return (
     <section id="design" className="relative w-full rounded-t-[30px] bg-ink">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col items-start gap-20 px-6 py-24 sm:px-12 lg:gap-[208px] lg:px-[120px] lg:py-[148px]">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col items-start gap-20 px-6 pt-24 pb-52 sm:px-12 lg:gap-[208px] lg:px-[120px] lg:pt-[148px] lg:pb-[300px]">
         {/* ── 헤더 ── (가운데 정렬 인트로) — 라벨 → 문단 0.1s 캐스케이드 */}
         <header className="flex w-full flex-col items-center gap-10 text-center">
           <Reveal>

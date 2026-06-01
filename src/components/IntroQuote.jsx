@@ -16,9 +16,8 @@ import { motion } from "framer-motion";
 export default function IntroQuote() {
   return (
     <section
-      className="relative w-full overflow-hidden text-cream"
-      // 검은 베이스 — Figma 원본 #050504(토큰 미등록 색이라 직접 사용). 그 위에 빛 이미지를 얹음.
-      style={{ backgroundColor: "#050504" }}
+      // 검은 베이스 — Figma 원본 #050504(= --color-night 토큰). 그 위에 빛 이미지를 얹음.
+      className="relative w-full overflow-hidden bg-night text-cream"
     >
       {/* 섹션 내부 기준: 가로 max 1440 중앙, 높이 985px, relative(빛·콘텐츠 absolute 기준점) */}
       <div className="relative mx-auto min-h-[985px] w-full max-w-[1440px]">

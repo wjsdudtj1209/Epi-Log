@@ -123,6 +123,8 @@ export default function Preloader() {
     } else {
       document.body.style.overflow = "";
       window.scrollTo(0, 0);
+      // 히어로 헤드라인 슬라이드인 트리거: 프리로더가 사라지기 시작할 때 알림.
+      window.dispatchEvent(new Event("preloader:done"));
     }
   }, [show]);
 

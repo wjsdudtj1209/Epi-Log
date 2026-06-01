@@ -11,6 +11,7 @@
 :root {
   /* ── Figma 변수에서 추출한 색 ─────────────────────────────────────────── */
   --figma-fill-background: #140f0b;     /* fill/background  : 다크 배경 */
+  --figma-night: #050504;               /* 딥 나이트 베이스(거의 블랙) — Hero 하단 페이드 / IntroQuote / VideoSection 배경 */
   --figma-text-title: #ffd99d;          /* text/Title       : 제목 (= 하단 글씨) */
   --figma-text-subtitle: #682e00;       /* text/subtitle    : 소제목(브라운) */
   --figma-rust: #bd5400;                /* Overview 제목    : Figma text/subtitle 최신값(node 1380:13317). 위 brown(#682e00)과 다른 번트오렌지 */

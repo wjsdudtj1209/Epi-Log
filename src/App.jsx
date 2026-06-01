@@ -7,6 +7,8 @@ import DeskResearchSection from "./components/DeskResearchSection.jsx";
 import DesignSystemSection from "./components/DesignSystemSection.jsx";
 import KeyFunctionSection from "./components/KeyFunctionSection.jsx";
 import MockupSection from "./components/MockupSection.jsx";
+import MockupSection2 from "./components/MockupSection2.jsx";
+import MockupSection3 from "./components/MockupSection3.jsx";
 import Footer from "./components/Footer.jsx";
 import Spotlight from "./components/Spotlight.jsx";
 import Preloader from "./components/Preloader.jsx";
@@ -25,11 +27,10 @@ export default function App() {
       <Preloader />
       <Navbar />
       <main>
-        {/* Atmospheric Canvas: Hero와 Question(IntroQuote)을 하나의 순수 블랙(#000000)
-            배경으로 묶어, 따뜻한 글로우만으로 두 섹션을 경계 없이 잇습니다.
-            Spotlight로 감싸 마우스를 따라 은은한 빛이 흐르게 합니다. */}
+        {/* Hero: 자체 배경 이미지를 가진 독립 섹션 (Atmospheric Canvas에서 분리). */}
+        <Hero />
+        {/* Question(IntroQuote): 순수 블랙(#000000) 위에서 마우스를 따라 은은한 빛이 흐름. */}
         <Spotlight className="bg-[#000000]" size={200}>
-          <Hero />
           <IntroQuote />
         </Spotlight>
         <VideoSection />
@@ -38,6 +39,8 @@ export default function App() {
         <DesignSystemSection />
         <KeyFunctionSection />
         <MockupSection />
+        <MockupSection2 />
+        <MockupSection3 />
       </main>
       <Footer />
       {/* 우측 하단 '맨 위로' 플로팅 버튼 (히어로 벗어나면 등장) */}

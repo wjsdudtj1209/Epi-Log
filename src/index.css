@@ -18,6 +18,7 @@
   /* 색상 — 친숙한 이름 → Figma/브랜드 primitive 연결 */
   --color-paper: var(--brand-paper); /* 메인 밝은 배경 */
   --color-ink: var(--figma-fill-background); /* 다크 섹션 배경 (fill/background) */
+  --color-night: var(--figma-night); /* 딥 나이트 베이스 #050504 (다크 인터루드 섹션들) */
   --color-cream: var(--brand-cream); /* 다크 위 밝은 텍스트(거의 흰 크림) */
   --color-cream-warm: var(--figma-text-log-default); /* 따뜻한 크림 (text/log default) */
   --color-gold: var(--figma-text-log-default-2); /* 포인트 골드 (text/log default2) */

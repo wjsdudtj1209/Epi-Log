@@ -1,40 +1,93 @@
 /**
- * Footer: 페이지 맨 아래 마무리 영역입니다.
- * 사이트 톤(어두운 #140F0B 배경 + 골드 포인트 + [Epi:Log] 브랜딩)에 맞춘 미니멀 푸터.
- *
- * 레이아웃: 데스크톱은 좌우로 벌어진 2단(space-between), 모바일은 세로로 쌓임.
- *  - LEFT : [Epi:Log] 로고(TAN-PEARL·골드) + 소개 문장(Pretendard)
- *  - RIGHT: 분야 / 제작자 2줄(우측 정렬, muted)
- * 콘텐츠 위에는 아주 옅은 골드 디바이더 라인으로 본문과 차분히 분리합니다.
+ * Footer: 새 Figma 디자인. 라이트 #FBFBFB 배경, 가운데 정렬, 데스크톱 1440.
+ * 큰 장식용 목업 그룹(PNG) 때문에 세로로 긴 푸터입니다. 위 → 아래 순서:
+ *  1) GLOW   : honey radial 장식(콘텐츠 뒤, z-0)
+ *  2) MESSAGE: 중앙 문구 + [Epi:Log] 워드마크(TAN-PEARL, gold-brown #A04B00)
+ *  3) MOCKUP : footer-mockups.png — 가로로 넘쳐 클립되는 장식 backdrop(pointer-events none)
+ *  4) BAR    : 로고 / 크레딧 3열 + 구분선 + 카피라이트 (max 1200, 가운데)
+ * 색은 토큰 사용: bg-mockup-bg(#FBFBFB) · text-ink(#140F0B) · text-kf-label(#A04B00) · honey(#FFD99D).
  */
+
+// 크레딧 3열 데이터
+const CREDITS = [
+  { role: "PLANNER", name: "전영서" },
+  { role: "PLANNER", name: "민명혜" },
+  { role: "DESIGNER", name: "강민경" },
+];
+
 export default function Footer() {
   return (
-    <footer className="w-full bg-ink">
-      {/* 가로 패딩은 다른 섹션과 동일(lg:120px) / 세로 64~80px. 상단에 옅은 골드 구분선. */}
-      <div className="mx-auto w-full max-w-[1440px] border-t border-gold-pale/20 px-6 py-10 sm:px-10 md:py-12 lg:px-[120px]">
-        <div className="flex flex-col gap-12 md:flex-row md:items-end md:justify-between md:gap-10">
-          {/* ── LEFT: 로고 + 소개 ── */}
-          <div className="flex flex-col gap-5">
-            {/* 로고: TAN-PEARL, 골드, 40→48px. 다른 [Epi:Log] 표기와 동일한 자간(0.02em). */}
-            <p className="font-tan text-[30px] leading-none font-normal tracking-[0.02em] text-gold sm:text-[36px]">
-              [Epi:Log]
-            </p>
-            {/* 소개 문장: Pretendard, muted 베이지, 15→16px, 줄간격 1.6. '[에필:로그]'만 골드로 살짝 강조. */}
-            <p className="max-w-[420px] font-pretendard text-[15px] leading-[1.6] font-normal text-muted sm:text-[16px]">
-              부재가 아닌 존재로 기억될 수 있도록,{" "}
-              <span className="text-gold">[에필:로그]</span>가 이어줍니다.
-            </p>
+    <footer className="relative w-full overflow-hidden bg-mockup-bg text-ink">
+      {/* 1440 캔버스(가운데 정렬) */}
+      <div className="relative mx-auto w-full max-w-[1440px]">
+        {/* 1) GLOW — honey radial, 상단 중앙 뒤(z-0) */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-[160px] z-0 -translate-x-1/2"
+          style={{
+            width: 343,
+            height: 343,
+            background:
+              "radial-gradient(circle, var(--color-honey) 0%, var(--color-honey) 30%, transparent 72%)",
+            opacity: 1,
+            filter: "blur(95px)",
+          }}
+        />
+
+        {/* 2) CENTER MESSAGE — 가운데, 좌우 패딩 120, 줄 간격 36 */}
+        <div className="relative z-10 flex flex-col items-center gap-9 px-6 pt-40 text-center sm:px-10 lg:px-[120px] lg:pt-[220px]">
+          <p className="font-pretendard text-[20px] font-medium leading-[24px] tracking-[-0.01em] text-ink">
+            부재가 아닌 존재로 기억될 수 있도록,
+          </p>
+          {/* 워드마크: TAN-PEARL, gold-brown(#A04B00) — 히어로의 #FFD99D와 다름 */}
+          <p
+            className="font-tan font-normal text-kf-label"
+            style={{ fontSize: "clamp(2.5rem, 5.07vw, 73px)", lineHeight: 1.5, letterSpacing: "0.3em" }}
+          >
+            [Epi:Log]
+          </p>
+        </div>
+
+        {/* 3) DECORATIVE MOCKUP GROUP — 메시지와 하단 바 사이 backdrop.
+            원본 비율 그대로(2062×954) 컨테이너의 143% 폭으로 가운데 배치 → 좌우로 넘쳐 클립.
+            화면이 줄면 비례 축소. 장식이므로 pointer-events none + aria-hidden. */}
+        <div className="relative z-0 mt-40 flex justify-center md:mt-56">
+          <img
+            src="/footer-mockups.png"
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none w-[143%] max-w-none select-none"
+          />
+        </div>
+
+        {/* 4) BOTTOM FOOTER BAR — max 1200, 가운데(1440 기준 좌우 120 여백) */}
+        <div className="relative z-10 mx-auto mt-16 w-full max-w-[1200px] px-6 pb-16 sm:px-10 lg:px-0 lg:pb-20">
+          {/* 행: (좌) 로고 / (우) 크레딧 3열. 모바일은 세로 스택. */}
+          <div className="flex flex-col items-center gap-10 md:flex-row md:items-center md:justify-between">
+            <img
+              src="/footer-logo.png"
+              alt="Epi:Log"
+              width={100}
+              height={100}
+              className="size-[100px] shrink-0 rounded-[15px]"
+            />
+            <div className="flex flex-wrap justify-center gap-x-12 gap-y-6 md:flex-nowrap md:gap-[80px]">
+              {CREDITS.map(({ role, name }, i) => (
+                <div key={i} className="flex flex-col items-center gap-2 md:items-start">
+                  <span className="font-pretendard text-[20px] text-kf-label">{role}</span>
+                  <span className="font-pretendard text-[20px] text-ink">{name}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* ── RIGHT: 분야 / 제작자 (우측 정렬, 작은 줄간격) ── */}
-          <div className="flex flex-col items-start gap-2 md:items-end">
-            <p className="font-pretendard text-[14px] leading-[1.6] font-normal text-muted text-left sm:text-[15px] md:text-right">
-              디지털미디어디자인 · 디지털 콘텐츠 제작
-            </p>
-            <p className="font-pretendard text-[14px] leading-[1.6] font-medium text-cream-warm text-left sm:text-[15px] md:text-right">
-              강민경 · 민명혜 · 전영서
-            </p>
-          </div>
+          {/* 구분선 (Line 37): 1px #140F0B, 폭 1200(바 전체) */}
+          <div className="mt-10 h-px w-full bg-ink" />
+
+          {/* 카피라이트: Pretendard Light 16/19, #140F0B */}
+          <p className="mt-6 font-pretendard text-[16px] font-light leading-[19px] text-ink text-center md:text-left">
+            © 2026. [Epi:Log] All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
