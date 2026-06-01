@@ -50,9 +50,9 @@ export default function Hero() {
         backgroundPosition: "center",
       }}
     >
-      {/* 헤드라인: 섹션 높이의 약 52% 지점(요청에 따라 기존 60.8%보다 위로), 좌측 정렬.
+      {/* 헤드라인: 섹션 높이의 약 60.8% 지점(Figma top 525px / 높이 863.25px = 60.8% 반영), 좌측 정렬.
           좌우 패딩은 데스크톱 120px → 작은 화면에서는 축소(가독성 유지). */}
-      <div className="absolute inset-x-0" style={{ top: "52%" }}>
+      <div className="absolute inset-x-0" style={{ top: "60.8%" }}>
         <div className="px-6 sm:px-12 lg:px-[120px]">
           <motion.h1
             className="font-tan text-honey"
@@ -78,11 +78,11 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* 스크롤 안내 — 우측 하단(헤드라인 좌측 패딩 120px과 대칭). 살짝 위로 올림(bottom-20).
+      {/* 스크롤 안내 — 우측 하단(헤드라인 좌측 패딩 120px과 대칭). 화면 하단으로 내림(bottom-10 = 40px).
           'Scroll' 라벨 + 가는 선을 타고 빛 점이 아래로 흘러 '아래로 스크롤'을 암시.
           헤드라인 등장 뒤 부드럽게 페이드인. 동작 줄이기면 점 흐름 없이 정적. */}
       <motion.div
-        className="pointer-events-none absolute bottom-44 right-6 flex flex-col items-center gap-3 sm:right-12 lg:right-[120px]"
+        className="pointer-events-none absolute bottom-10 right-6 flex flex-col items-center gap-3 sm:right-12 lg:right-[120px]"
         initial={reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: revealed ? 1 : 0 }}
         transition={reduceMotion ? { duration: 0 } : { duration: 0.9, delay: 1.2 }}

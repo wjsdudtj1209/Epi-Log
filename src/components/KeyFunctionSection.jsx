@@ -3,7 +3,9 @@
  * - 라이트 그레이 배경(#EFECEC) + 상단 라운드 30px.
  * - 라벨 'KEY FUNCTION' + 콘텐츠 행(좌: 카드 3개 ~620×188 / 우: 폰 목업 558×594).
  * - 카드 레이어: 배경이미지(맨 뒤) → 반투명 오버레이(이미지 위) → 텍스트(맨 위). 폰: 그라데이션 패널 위 목업.
+ * - 좌측 카드 3개는 스크롤 진입 시 공유 컴포넌트 <Reveal>로 0.12초 간격 순차 등장(아래→위 페이드).
  */
+import Reveal from "./Reveal.jsx";
 
 // 좌측 카드 3종. overlayStyle = 인라인 반투명 오버레이(이미지가 비치도록). 제목/설명 색은 카드별.
 const cards = [
@@ -69,10 +71,13 @@ export default function KeyFunctionSection() {
 
         {/* 콘텐츠 행 */}
         <div className="flex flex-col gap-[22px] lg:flex-row">
-          {/* LEFT: 카드 3개 (각 ~188px) — 3×188 + 2×15 = 594 */}
+          {/* LEFT: 카드 3개 (각 ~188px) — 3×188 + 2×15 = 594.
+              각 카드를 <Reveal>로 감싸 index×0.12초씩 늦춰 1→2→3 순서로 떠오르게 함. */}
           <div className="flex flex-col gap-[15px] lg:w-[620px]">
-            {cards.map((c) => (
-              <FeatureCard key={c.title} {...c} />
+            {cards.map((c, i) => (
+              <Reveal key={c.title} delay={i * 0.12}>
+                <FeatureCard {...c} />
+              </Reveal>
             ))}
           </div>
 
