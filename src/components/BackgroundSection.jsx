@@ -1,4 +1,5 @@
-import { motion, useReducedMotion } from "framer-motion";
+import { useRef } from "react";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import Reveal from "./Reveal.jsx";
 import Hemisphere from "./Hemisphere.jsx";
 
@@ -47,6 +48,19 @@ function NotificationCard({ n, i, reduce }) {
 export default function BackgroundSection() {
   const reduceMotion = useReducedMotion(); // 접근성: 모션 줄이기면 카드 즉시 표시
 
+  // ── Overview 카피 스크롤 연동 페이드인 ──
+  // 카피(<h2>)가 화면을 지나가는 동안의 스크롤 진행도(0~1)를 추적.
+  // offset: 카피 상단이 뷰포트 85% 지점에 오면 0(시작) → 35% 지점에 오면 1(완료).
+  const copyRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: copyRef,
+    offset: ["start 0.85", "start 0.35"],
+  });
+  // 1구간(0~0.45): "사후의 혼란을," 가 투명(0) → 또렷(1)으로 채워짐.
+  const opacityBefore = useTransform(scrollYProgress, [0, 0.45], [0, 1]);
+  // 멈춤(0.45~0.55) 후 2구간(0.55~1): "생전의 선택으로" 가 이어서 채워짐.
+  const opacityAfter = useTransform(scrollYProgress, [0.55, 1], [0, 1]);
+
   return (
     <section
       id="background"
@@ -87,9 +101,20 @@ export default function BackgroundSection() {
         {/* 본문 그룹: 큰 카피 + 설명문 (간격 50px) */}
         <div className="flex flex-col items-center gap-[50px]">
           {/* 큰 카피: Pretendard Medium + Bold 2단 (모바일 38px → 데스크톱 52px) */}
-          <h2 className="font-pretendard text-t1 text-brown-deep sm:text-h1">
-            <span className="font-medium">사후의 혼란을, </span>
-            <span className="font-bold">생전의 선택으로</span>
+          <h2 ref={copyRef} className="font-pretendard text-t1 text-brown-deep sm:text-h1">
+            {/* 두 문구 각각 스크롤 진행도에 따라 opacity가 올라감(reduce면 처음부터 또렷). */}
+            <motion.span
+              className="font-medium"
+              style={reduceMotion ? undefined : { opacity: opacityBefore }}
+            >
+              사후의 혼란을,{" "}
+            </motion.span>
+            <motion.span
+              className="font-bold"
+              style={reduceMotion ? undefined : { opacity: opacityAfter }}
+            >
+              생전의 선택으로
+            </motion.span>
           </h2>
           {/* 설명문: Pretendard Medium 16px/1.6, 가운데 정렬 (Figma Head/Body/p1-Medium) */}
           <p className="font-pretendard text-p1 font-medium text-ink">
