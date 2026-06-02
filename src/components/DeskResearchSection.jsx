@@ -1,5 +1,12 @@
+import { motion, useReducedMotion } from "framer-motion";
 import Reveal from "./Reveal.jsx";
 import Container from "./Container.jsx";
+
+// insight-box 본문/강조문장 순차 등장(fade+상승) — 부모 stagger로 본문 → 강조문장 순서.
+const INSIGHT_LINE = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+};
 
 // Desk Research 5개 아이콘 — 컨테이너 박스 없이 투명 배경의 글리프만 사용 (Figma 그대로)
 const icons = [
@@ -22,6 +29,7 @@ const fadeMask =
  *  - 박스 좌우는 그라데이션 마스크로 투명하게 페이드
  */
 export default function DeskResearchSection() {
+  const reduce = useReducedMotion(); // 접근성: 모션 줄이기면 순차 등장 없이 즉시 표시
   const loop = [...icons, ...icons]; // 5 → 10 (절반 이동 시 정확히 한 바퀴)
 
   // 하단 패딩을 넓혀 아래 Design System(다크 라운드 섹션)과의 간격 확보 (md 기준 160→288px)
@@ -64,17 +72,40 @@ export default function DeskResearchSection() {
         </div>
       </Container>
 
-      {/* 맺음 메시지 — 다크 박스(box #352B1E) + 크림 텍스트, 가운데 정렬 */}
+      {/* 맺음 메시지 — 배경은 Figma 박스 텍스처(insight-box-bg.png: 원본 insight-box.png에서 글자를 지운 버전),
+          글자는 또렷하게 HTML로 렌더(이미지에 박힌 글자가 스케일 시 깨지는 문제 방지).
+          둥근 모서리·그림자는 CSS로 처리, 배경은 박스 높이에 맞춰 bg-cover로 채움. */}
       <div className="mx-auto mt-[86px] flex w-full max-w-[1440px] justify-center px-6 sm:px-10 lg:px-[120px]">
-        <Reveal>
-          <div className="rounded-[40px] bg-box px-8 py-10 text-center shadow-lg sm:px-[100px] sm:py-[50px]">
-            <p className="text-lead font-medium text-cream-warm">
-              이처럼 사후 처리 방식이 플랫폼마다 달라질수록,
-              <br />
-              남겨진 사람에게는 더 큰 혼란과 부담이 생깁니다.
-              <br />
-              에필:로그는 흩어진 절차와 판단을 하나의 기준으로 정리할 수 있도록 돕습니다.
-            </p>
+        <Reveal className="w-full max-w-[838px]">
+          <div
+            className="relative overflow-hidden rounded-[30px] bg-cover bg-center px-8 py-10 text-center shadow-[5.59px_5.59px_11.878px_rgba(101,79,48,0.17)] sm:px-[100px] sm:py-[40px]"
+            style={{ backgroundImage: "url('/insight-box-bg.png')" }}
+          >
+            {/* 박스가 뜬 뒤 본문(앞 2줄) → 강조 문장 순서로 순차 등장(stagger). reduce면 즉시 표시.
+                색은 text-cream-warm(=text/log default #FBEDD5). */}
+            <motion.div
+              initial={reduce ? false : "hidden"}
+              whileInView={reduce ? undefined : "show"}
+              viewport={{ once: true, amount: 0.5 }}
+              variants={{ show: { transition: { delayChildren: 0.25, staggerChildren: 0.3 } } }}
+            >
+              {/* Figma(node 1392:925): 앞 2줄 18px Medium */}
+              <motion.p
+                variants={INSIGHT_LINE}
+                className="text-[18px] font-medium leading-[1.6] tracking-[-0.02em] text-cream-warm"
+              >
+                이처럼 사후 처리 방식이 플랫폼마다 달라질수록,
+                <br />
+                남겨진 사람에게는 더 큰 혼란과 부담이 생깁니다.
+              </motion.p>
+              {/* 마지막 강조 문장(20px SemiBold) — 한 박자 늦게 등장 */}
+              <motion.p
+                variants={INSIGHT_LINE}
+                className="mt-[29px] text-[20px] font-semibold leading-[1.6] tracking-[-0.02em] text-cream-warm"
+              >
+                에필:로그는 흩어진 절차와 판단을 하나의 기준으로 정리할 수 있도록 돕습니다.
+              </motion.p>
+            </motion.div>
           </div>
         </Reveal>
       </div>

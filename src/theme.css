@@ -16,7 +16,7 @@
   --figma-text-subtitle: #682e00;       /* text/subtitle    : 소제목(브라운) */
   --figma-rust: #bd5400;                /* Overview 제목    : Figma text/subtitle 최신값(node 1380:13317). 위 brown(#682e00)과 다른 번트오렌지 */
   --figma-notification: #aca08a;        /* Notification     : 알림 카드 배경(보통 32% 투명도로 사용) */
-  --figma-box: #352b1e;                 /* box              : 다크 메시지 카드 배경(Desk Research 맺음) */
+  --figma-box: #372f2f;                 /* box              : 다크 메시지 카드 배경(Desk Research 맺음, Figma node 1392:924) */
   --figma-text-light: #ffbb5b;          /* text/light       : 밝은 강조 */
   --figma-text-log-default: #fbedd5;    /* text/log default : 따뜻한 밝은 텍스트 */
   --figma-text-log-default-2: #feb951;  /* text/log default2: 포인트 골드 */

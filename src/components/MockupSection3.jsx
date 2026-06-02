@@ -1,12 +1,19 @@
-import Reveal from "./Reveal.jsx";
+import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ClusterLabel, PHONE_SHADOW_CLASS } from "./MockupSection.jsx";
 
 /**
  * MockupSection3: 자산 등록 / MY ASSETS (Mockup 마지막 섹션).
  * ▸ 모든 콘텐츠를 Figma 좌표로 1:1 구성(폰 base 245.69×534.17, scale 1.0).
  *   섹션에는 transform/scale 없음 — 절대배치만으로 Figma와 1:1 정렬.
- * ▸ 연결선은 Figma 좌표 그대로의 단일 SVG 오버레이(폰 뒤, z-0).
+ * ▸ 연결선은 Figma 좌표 그대로의 SVG 오버레이(폰 뒤, z-0).
  * ▸ 폰 정면/회전 없음(균일 드롭섀도), 라이트 #FBFBFB / 다크 #140F0B.
+ *
+ * ▣ 스크롤 순차 등장: 헤더 → ① → ② → ③ → ④ 순으로, 각 그룹의
+ *   [번호+텍스트 + 폰 + 그 연결선]이 함께 fade+상승(0.6s)으로 1회 등장.
+ *   각 그룹은 캔버스 전체를 덮는 투명 레이어라 위치는 1:1 유지하고,
+ *   그룹 대표 Y(anchorTop)에 둔 보이지 않는 sentinel을 IntersectionObserver로 관찰해
+ *   그 지점이 화면에 들어올 때만 등장시킨다(스크롤 위치 연동).
  */
 
 const BASE_W = 1440;
@@ -38,11 +45,11 @@ function StepItem({ n, title, desc, align = "left" }) {
   );
 }
 
-// 절대배치(BASE 좌표) + Reveal(스크롤 페이드+상승). right를 주면 우측 기준.
+// 절대배치(BASE 좌표). 등장 애니메이션은 상위 <ScrollGroup>이 그룹 단위로 담당(여기선 위치만).
 function Abs({ left, right, top, children }) {
   return (
     <div className="absolute z-10" style={right != null ? { right, top } : { left, top }}>
-      <Reveal>{children}</Reveal>
+      {children}
     </div>
   );
 }
@@ -86,8 +93,8 @@ function Glow({ left, top }) {
   );
 }
 
-// 연결선 — BASE 좌표 단일 SVG(폰 뒤, z-0). Figma 실제 path 그대로.
-function ConnectorLines() {
+// 연결선 SVG 래퍼 — BASE 좌표 그대로, 폰 뒤(z-0). path만 children으로 받아 그룹별로 나눠 그림.
+function LineSvg({ children }) {
   return (
     <svg
       className="pointer-events-none absolute inset-0 z-0 text-ink"
@@ -98,17 +105,157 @@ function ConnectorLines() {
       aria-hidden="true"
     >
       <g stroke="currentColor" strokeWidth="1" strokeLinejoin="round" strokeLinecap="round">
-        {/* Line 35(상단 가로)는 뷰포트 오른쪽 끝까지 늘려야 해서 SVG 밖 div로 분리됨 */}
-        {/* Vector 7935 (phone1→phone2) — 그대로 */}
-        <path d="M317.5 743V788C317.5 815.6142 339.8858 838 367.5 838H1069.5" />
-        {/* Vector 7936 (phone2→phone3) — phone2 실제 하단(solid ≈1089)에서 시작해 아래로 내려와,
-            ③ 번호원(top=1319) 위쪽 y=1295 가로줄로 지난 뒤 phone3 우측 안쪽으로 tuck.
-            양끝 모두 폰의 '솔리드' 영역에 들어가 자연스럽게 연결됨. */}
-        <path d="M1191 1085V1245C1191 1272.614 1168.614 1295 1141 1295H560" />
-        {/* Line 36(하단 가로)는 화면 왼쪽 끝까지 늘려야 해서 SVG 밖 div로 분리됨 */}
-
+        {children}
       </g>
     </svg>
+  );
+}
+
+// 스크롤 방향 양방향 토글: 선 위치(anchorTop)에 둔 보이지 않는 sentinel이
+// 뷰포트 트리거선(하단에서 20% 위 = 높이의 80%)을 '지나 위로' 가면 그려짐(true),
+// 다시 '아래로' 내려오면 되감김(false). 선이 화면 위로 완전히 지나가도 그려진 상태는 유지됨
+// (boundingClientRect.top 비교 → top<0 이어도 80%보다 위라 true). → 올릴 때만 반대로 되감김.
+function useScrollDrawn(anchorTop) {
+  const reduce = useReducedMotion();
+  const sentinelRef = useRef(null);
+  const [drawn, setDrawn] = useState(false);
+
+  useEffect(() => {
+    if (reduce) {
+      setDrawn(true);
+      return;
+    }
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        // sentinel이 트리거선(뷰포트 높이의 80%)보다 위면 그려짐, 아래면 되감김.
+        setDrawn(entry.boundingClientRect.top < window.innerHeight * 0.8);
+      },
+      // 위/아래 경계를 모두 통과 보고받도록(되감기 위해 disconnect 안 함). 트리거선은 하단 -20%.
+      { threshold: 0, rootMargin: "0px 0px -20% 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [reduce]);
+
+  return [sentinelRef, reduce ? true : drawn];
+}
+
+// 보이지 않는 1px 트리거(선 위치 기준)
+function Sentinel({ innerRef, top }) {
+  return (
+    <div
+      ref={innerRef}
+      aria-hidden="true"
+      className="pointer-events-none absolute left-0 w-px"
+      style={{ top, height: 1 }}
+    />
+  );
+}
+
+// 연결선(SVG) — 선이 화면에 들어오면 pathLength 0→1로 출발 폰 → 다음 폰 방향으로 그려지고,
+// 스크롤을 올리면 1→0으로 반대로 되감김(useScrollDrawn이 스크롤 방향에 따라 토글).
+function DrawLine({ d, anchorTop }) {
+  const reduce = useReducedMotion();
+  const [sentinelRef, drawn] = useScrollDrawn(anchorTop);
+  return (
+    <>
+      <Sentinel innerRef={sentinelRef} top={anchorTop} />
+      <LineSvg>
+        {reduce ? (
+          <path d={d} />
+        ) : (
+          <motion.path
+            d={d}
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: drawn ? 1 : 0 }}
+            transition={{ duration: 1.2, ease: "easeInOut" }}
+          />
+        )}
+      </LineSvg>
+    </>
+  );
+}
+
+// 가로선(div) — scaleX 0→1로 origin 쪽 끝에서 '뻗어 나가듯' 그려지고, 올리면 0으로 되감김.
+function HLine({ style, origin, anchorTop }) {
+  const reduce = useReducedMotion();
+  const [sentinelRef, drawn] = useScrollDrawn(anchorTop);
+  return (
+    <>
+      <Sentinel innerRef={sentinelRef} top={anchorTop} />
+      <motion.div
+        aria-hidden="true"
+        className="pointer-events-none absolute z-0 bg-ink"
+        style={{ ...style, transformOrigin: origin }}
+        initial={reduce ? false : { scaleX: 0 }}
+        animate={reduce ? undefined : { scaleX: drawn ? 1 : 0 }}
+        transition={{ duration: 1.2, ease: "easeInOut" }}
+      />
+    </>
+  );
+}
+
+/**
+ * ScrollGroup: 한 그룹(번호+텍스트 + 폰 + 그 연결선)을 묶어, 그룹 대표 Y(anchorTop)가
+ * 화면에 들어올 때 '한 번만' fade+상승(1.2s ease-out)으로 천천히 등장(스크롤 순차 등장).
+ * - 캔버스 전체를 덮는 투명 레이어 안에 절대좌표 요소를 그대로 두어 위치는 1:1 유지.
+ * - 트리거: anchorTop 위치의 보이지 않는 1px sentinel을 IntersectionObserver로 관찰.
+ *   (레이어 자체는 캔버스만큼 커서 그걸 관찰하면 모든 그룹이 동시에 떠버리므로 sentinel을 따로 둠)
+ * - prefers-reduced-motion이면 즉시 표시(애니메이션·순차 없음).
+ */
+function ScrollGroup({ anchorTop, children }) {
+  const reduce = useReducedMotion();
+  const sentinelRef = useRef(null);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    if (reduce) {
+      setShown(true); // 동작 줄이기: 바로 표시
+      return;
+    }
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShown(true);
+          io.disconnect(); // 1회만(스크롤을 올려도 다시 숨기지 않음)
+        }
+      },
+      // 뷰포트 하단에서 20% 올라온 지점을 이 sentinel이 지날 때 등장(충분히 보일 때).
+      { threshold: 0, rootMargin: "0px 0px -20% 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [reduce]);
+
+  return (
+    <>
+      {/* 스크롤 트리거 기준점(보이지 않음) — 그룹 대표 Y에 위치 */}
+      <div
+        ref={sentinelRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 w-px"
+        style={{ top: anchorTop, height: 1 }}
+      />
+      {/* 콘텐츠 레이어(캔버스 전체 덮음) — 그룹이 함께 fade+상승. 사이트 공통 스타일과 동일. */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={
+          reduce
+            ? undefined
+            : {
+                opacity: shown ? 1 : 0,
+                transform: shown ? "translateY(0)" : "translateY(30px)",
+                transition: "opacity 1.2s ease-out, transform 1.2s ease-out",
+              }
+        }
+      >
+        {children}
+      </div>
+    </>
   );
 }
 
@@ -121,61 +268,67 @@ export default function MockupSection3() {
         className="relative mx-auto"
         style={{ width: BASE_W, height: BASE_H, "--mk-asset-scale": 1.3 }}
       >
-        {/* 연결선 + 글로우 (폰 뒤, z-0) */}
-        <ConnectorLines />
-        {/* Line 35 (상단 가로) — "자산 등록" 타이틀 텍스트 끝(862.8) 바로 오른쪽(885)에서 시작,
-            타이틀 세로 중심(y≈120)에 맞춤. 캔버스 1440이 아니라 실제 뷰포트 오른쪽 끝(100vw)까지 연장.
-            중앙정렬(1440) 기준 left=885 → 화면 우측 끝 폭 = calc(50vw - 165px). */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute z-0 bg-ink"
-          style={{ left: 885, top: 87.5, height: 1, width: "calc(50vw - 165px)" }}
-        />
-        {/* Line 36 (하단 가로) — 오른쪽 끝(x=605)은 그대로 두고, 왼쪽을 캔버스 0이 아니라
-            실제 뷰포트 왼쪽 끝(0vw)까지 연장. 중앙정렬(1440) 기준:
-            왼쪽 시작 left = calc(720px - 50vw), 폭 = calc(50vw - 115px) → x605에서 끝남. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute z-0 bg-ink"
-          style={{ left: "calc(720px - 50vw)", top: 1779, height: 1, width: "calc(50vw - 115px)" }}
-        />
-        <Glow left={913} top={454} />
-        <Glow left={414} top={1433} />
+        {/* ── 그룹 0: 헤더(MY ASSETS · 자산 등록) + 상단 가로선 ── */}
+        <ScrollGroup anchorTop={8}>
+          {/* Line 35 (상단 가로) — "자산 등록" 타이틀 끝(885)에서 시작, 화면 우측 끝까지.
+              타이틀 쪽(왼쪽 끝)에서 오른쪽으로 뻗어 나가듯 그려짐. */}
+          <HLine style={{ left: 885, top: 87.5, height: 1, width: "calc(50vw - 165px)" }} origin="left" anchorTop={87.5} />
+          <Abs left={730} top={8}>
+            <ClusterLabel
+              eyebrow="MY ASSETS"
+              title="자산 등록"
+              body={
+                <>
+                  무엇을 남기고, 지우고, 전달할지 미리 정해두어
+                  <br />
+                  남겨진 사람이 혼자 판단하지 않도록 돕습니다.
+                </>
+              }
+              bodyWidth={590}
+            />
+          </Abs>
+        </ScrollGroup>
 
-        {/* 헤더(라벨) — 우측(left 730). 상단 여백 24→8로 더 줄여 MY ASSETS 위 공간을 최소화. */}
-        <Abs left={730} top={8}>
-          <ClusterLabel
-            eyebrow="MY ASSETS"
-            title="자산 등록"
-            body={
-              <>
-                무엇을 남기고, 지우고, 전달할지 미리 정해두어
-                <br />
-                남겨진 사람이 혼자 판단하지 않도록 돕습니다.
-              </>
-            }
-            bodyWidth={590}
-          />
-        </Abs>
+        {/* ── 그룹 ①: 유형 선택 (phone1 + 연결선 phone1→phone2) ── */}
+        <ScrollGroup anchorTop={221}>
+          {/* Vector 7935 (phone1→phone2) — 선이 화면에 들어오면 1→2 방향으로 그려짐 */}
+          <DrawLine d="M317.5 743V788C317.5 815.6142 339.8858 838 367.5 838H1069.5" anchorTop={743} />
+          <AssetPhone {...PHONES[0]} />
+          <Abs left={530} top={541}>
+            <StepItem n="1" title="유형 선택" desc="어떤 흔적을 남길지 먼저 고릅니다" />
+          </Abs>
+        </ScrollGroup>
 
-        {/* 폰 4개(base 크기, Figma 좌표) */}
-        {PHONES.map((ph) => (
-          <AssetPhone key={ph.src} {...ph} />
-        ))}
+        {/* ── 그룹 ②: 정보 입력 (phone2 + 연결선 phone2→phone3 + 글로우) ── */}
+        <ScrollGroup anchorTop={563}>
+          <Glow left={913} top={454} />
+          {/* Vector 7936 (phone2→phone3) — 선이 화면에 들어오면 2→3 방향으로 그려짐 */}
+          <DrawLine d="M1191 1085V1245C1191 1272.614 1168.614 1295 1141 1295H560" anchorTop={1085} />
+          <AssetPhone {...PHONES[1]} />
+          <Abs right={416} top={930}>
+            <StepItem n="2" title="정보 입력" desc="기억해야 할 정보를 차분히 기록합니다" align="right" />
+          </Abs>
+        </ScrollGroup>
 
-        {/* 번호 스텝 4개 — Figma 좌표. ②만 우측정렬. */}
-        <Abs left={530} top={541}>
-          <StepItem n="1" title="유형 선택" desc="어떤 흔적을 남길지 먼저 고릅니다" />
-        </Abs>
-        <Abs right={416} top={930}>
-          <StepItem n="2" title="정보 입력" desc="기억해야 할 정보를 차분히 기록합니다" align="right" />
-        </Abs>
-        <Abs left={646} top={1319}>
-          <StepItem n="3" title="기준 선택" desc="남길 것과 지울 것을 나의 기준으로 정합니다" />
-        </Abs>
-        <Abs left={657} top={1708}>
-          <StepItem n="4" title="실행 설정" desc="뜻을 실행할 사람과 방법을 연결합니다" />
-        </Abs>
+        {/* ── 그룹 ③: 기준 선택 (phone3 + 글로우) ── 연결선 없음(요청에 따라 phone3→phone4 선 제거) */}
+        <ScrollGroup anchorTop={1044}>
+          <Glow left={414} top={1433} />
+          <AssetPhone {...PHONES[2]} />
+          <Abs left={646} top={1319}>
+            <StepItem n="3" title="기준 선택" desc="남길 것과 지울 것을 나의 기준으로 정합니다" />
+          </Abs>
+        </ScrollGroup>
+
+        {/* ── 그룹 ④: 실행 설정 (phone4 + 하단 가로선) ── */}
+        <ScrollGroup anchorTop={1548}>
+          {/* Line 36 (하단 가로) — 화면 왼쪽 끝에서 x605까지.
+              좌측 끝에서 오른쪽으로 뻗어 나가듯 그려짐. */}
+          <HLine style={{ left: "calc(720px - 50vw)", top: 1779, height: 1, width: "calc(50vw - 115px)" }} origin="left" anchorTop={1779} />
+          <AssetPhone {...PHONES[3]} />
+          <Abs left={657} top={1708}>
+            <StepItem n="4" title="실행 설정" desc="뜻을 실행할 사람과 방법을 연결합니다" />
+          </Abs>
+        </ScrollGroup>
       </div>
     </section>
   );

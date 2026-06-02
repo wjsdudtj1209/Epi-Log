@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
 import Reveal from "./Reveal.jsx";
 import Hemisphere from "./Hemisphere.jsx";
 
@@ -45,21 +45,46 @@ function NotificationCard({ n, i, reduce }) {
  * - Background: Desk Research처럼 '좌측 정렬' + Pretendard 제목
  *   알림 카드 아래로 반구가 은은히 깔리고, "죽음은 준비 없이…" 문장으로 마무리됩니다.
  */
+// Overview 큰 카피 — 한 글자씩 채우기 위해 글자 배열로 분해. 앞 구절 medium / 뒤 구절 bold.
+const OVERVIEW_SEGMENTS = [
+  { text: "사후의 혼란을, ", weight: "font-medium" },
+  { text: "생전의 선택으로", weight: "font-bold" },
+];
+const OVERVIEW_CHARS = OVERVIEW_SEGMENTS.flatMap((s) =>
+  [...s.text].map((ch) => ({ ch, weight: s.weight }))
+);
+// 한 글자가 dim→1로 차는 진행 구간. 글자 간격(≈1/글자수)보다 훨씬 크게 잡아
+// 인접 글자 구간이 많이 겹치도록 → 좌→우로 매끄럽게 흐르는 파도 효과(끊김 없음).
+const FILL_RAMP = 0.34;
+
+// 한 글자: 공통 스프링 진행도(progress)에 따라 opacity가 dim(0.14)→1로 채워짐.
+function FillChar({ char, weight, progress, start }) {
+  const opacity = useTransform(progress, [start, start + FILL_RAMP], [0.14, 1]);
+  return (
+    <motion.span className={weight} style={{ opacity }}>
+      {char === " " ? " " : char}
+    </motion.span>
+  );
+}
+
 export default function BackgroundSection() {
   const reduceMotion = useReducedMotion(); // 접근성: 모션 줄이기면 카드 즉시 표시
 
-  // ── Overview 카피 스크롤 연동 페이드인 ──
+  // ── Overview 카피 스크롤 연동 '한 글자씩 채우기' ──
   // 카피(<h2>)가 화면을 지나가는 동안의 스크롤 진행도(0~1)를 추적.
-  // offset: 카피 상단이 뷰포트 85% 지점에 오면 0(시작) → 35% 지점에 오면 1(완료).
+  // offset: 카피 상단이 뷰포트 90% 지점에 오면 0(시작) → 55% 지점(화면 중앙쯤)에 오면 1(완료).
+  //   → 카피가 화면을 다 지나가기 전에 일찍 채움이 끝남(= 더 빠른 애니메이션).
   const copyRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: copyRef,
-    offset: ["start 0.85", "start 0.35"],
+    offset: ["start 0.9", "start 0.55"],
   });
-  // 1구간(0~0.45): "사후의 혼란을," 가 투명(0) → 또렷(1)으로 채워짐.
-  const opacityBefore = useTransform(scrollYProgress, [0, 0.45], [0, 1]);
-  // 멈춤(0.45~0.55) 후 2구간(0.55~1): "생전의 선택으로" 가 이어서 채워짐.
-  const opacityAfter = useTransform(scrollYProgress, [0.55, 1], [0, 1]);
+  // 스크롤 값을 스프링으로 완만하게(끊김 제거). stiffness를 높여 지연을 줄여 더 즉각적으로 따라옴.
+  const fillProgress = useSpring(scrollYProgress, {
+    stiffness: 110,
+    damping: 28,
+    restDelta: 0.0005,
+  });
 
   return (
     <section
@@ -102,19 +127,23 @@ export default function BackgroundSection() {
         <div className="flex flex-col items-center gap-[50px]">
           {/* 큰 카피: Pretendard Medium + Bold 2단 (모바일 38px → 데스크톱 52px) */}
           <h2 ref={copyRef} className="font-pretendard text-t1 text-brown-deep sm:text-h1">
-            {/* 두 문구 각각 스크롤 진행도에 따라 opacity가 올라감(reduce면 처음부터 또렷). */}
-            <motion.span
-              className="font-medium"
-              style={reduceMotion ? undefined : { opacity: opacityBefore }}
-            >
-              사후의 혼란을,{" "}
-            </motion.span>
-            <motion.span
-              className="font-bold"
-              style={reduceMotion ? undefined : { opacity: opacityAfter }}
-            >
-              생전의 선택으로
-            </motion.span>
+            {/* 첫 글자부터 좌→우로 한 글자씩 opacity가 채워짐(스프링으로 매끄럽게).
+                reduce면 애니메이션 없이 처음부터 또렷. */}
+            {reduceMotion
+              ? OVERVIEW_SEGMENTS.map((s) => (
+                  <span key={s.text} className={s.weight}>
+                    {s.text}
+                  </span>
+                ))
+              : OVERVIEW_CHARS.map((c, i) => (
+                  <FillChar
+                    key={i}
+                    char={c.ch}
+                    weight={c.weight}
+                    progress={fillProgress}
+                    start={(i / (OVERVIEW_CHARS.length - 1)) * (1 - FILL_RAMP)}
+                  />
+                ))}
           </h2>
           {/* 설명문: Pretendard Medium 16px/1.6, 가운데 정렬 (Figma Head/Body/p1-Medium) */}
           <p className="font-pretendard text-p1 font-medium text-ink">

@@ -49,14 +49,16 @@ export default function Footer() {
         </div>
 
         {/* 3) DECORATIVE MOCKUP GROUP — 메시지와 하단 바 사이 backdrop.
-            원본 비율 그대로(2062×954) 컨테이너의 143% 폭으로 가운데 배치 → 좌우로 넘쳐 클립.
-            화면이 줄면 비례 축소. 장식이므로 pointer-events none + aria-hidden. */}
-        <div className="relative z-0 mt-40 flex justify-center md:mt-56">
+            뷰포트 전체 폭으로 풀블리드(가운데 1440 컨테이너를 벗어나 화면 좌우 끝까지) → 좌우 흰 여백 제거.
+            width:100vw + marginLeft:calc(50% - 50vw)로 컨테이너 밖 화면 끝까지 확장하고,
+            넘치는 부분은 footer의 overflow-hidden이 잘라냄. 장식이라 pointer-events none + aria-hidden. */}
+        <div className="relative z-0 mt-40 md:mt-56">
           <img
             src="/footer-mockups.png"
             alt=""
             aria-hidden="true"
-            className="pointer-events-none w-[143%] max-w-none select-none"
+            className="pointer-events-none block max-w-none select-none"
+            style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
           />
         </div>
 

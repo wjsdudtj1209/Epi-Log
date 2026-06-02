@@ -75,7 +75,8 @@ export default function KeyFunctionSection() {
               각 카드를 <Reveal>로 감싸 index×0.12초씩 늦춰 1→2→3 순서로 떠오르게 함. */}
           <div className="flex flex-col gap-[15px] lg:w-[620px]">
             {cards.map((c, i) => (
-              <Reveal key={c.title} delay={i * 0.12}>
+              // duration 1.2로 더 천천히 떠오르고, 순차 간격도 0.2초로 살짝 늘림.
+              <Reveal key={c.title} delay={i * 0.2} duration={1.2}>
                 <FeatureCard {...c} />
               </Reveal>
             ))}

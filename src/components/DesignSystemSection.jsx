@@ -10,6 +10,7 @@
  * 기존 내부 모션(아이콘 마퀴·빛나는 점·Glass 블러·그라데이션·점선면 커넥터·Naming 글로우)은
  * 블록 '내부'에 있어 바깥 Reveal 래핑의 영향을 받지 않고 그대로 유지됩니다.
  */
+import { motion, useReducedMotion } from "framer-motion";
 import Reveal from "./Reveal.jsx";
 
 // 섹션 라벨(피그마 원본): Pretendard Regular 18px / lh1.6 / ls-0.02em / #FFD99D, 좌측 정렬. 구분선·번호 없음.
@@ -43,26 +44,38 @@ const ICONS = [
   { n: 8, maxW: 54, maxH: 58 },
 ];
 
-// 커넥터 1 (점↔선): 화살촉 없는 단순 가로선 180px·1px·gold-pale/52. 그래픽 줄 중앙 정렬, md+만.
-function ConnectorLine() {
+// 커넥터 1 (점↔선): 가로선 180px·1px·gold-pale/52. delay 후 왼→오로 그려지듯(scaleX) 등장. md+만.
+function ConnectorLine({ delay = 0 }) {
+  const reduce = useReducedMotion();
   return (
     <div className="hidden shrink-0 items-center self-start text-gold-pale/52 md:mt-[110px] md:flex" aria-hidden="true">
-      <span className="block h-px w-[120px] bg-current lg:w-[180px]" />
+      <motion.span
+        className="block h-px w-[120px] origin-left bg-current lg:w-[180px]"
+        initial={reduce ? false : { scaleX: 0, opacity: 0 }}
+        whileInView={reduce ? undefined : { scaleX: 1, opacity: 1 }}
+        viewport={{ once: true, amount: 0.4 }}
+        transition={{ duration: 0.5, ease: "easeOut", delay }}
+      />
     </div>
   );
 }
-// 커넥터 2 (선↔면): 본체선 160px + V자 화살촉(±45°, ~37px). 하나의 SVG path로 완전한 일직선.
-function ConnectorArrow() {
+// 커넥터 2 (선↔면): 본체선 + V자 화살촉. delay 후 pathLength로 선→화살촉 순서로 그려지듯 등장. md+만.
+function ConnectorArrow({ delay = 0 }) {
+  const reduce = useReducedMotion();
   return (
     <div className="hidden shrink-0 items-center self-start text-gold-pale/52 md:mt-[88px] md:flex lg:mt-[83px]" aria-hidden="true">
       <svg viewBox="0 0 186 54" fill="none" className="h-auto w-[150px] lg:w-[186px]">
-        <path
+        <motion.path
           d="M0 27L186 27M160 1L186 27L160 53"
           stroke="currentColor"
           strokeWidth="1"
           strokeLinecap="round"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
+          initial={reduce ? false : { pathLength: 0, opacity: 0 }}
+          whileInView={reduce ? undefined : { pathLength: 1, opacity: 1 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.6, ease: "easeInOut", delay }}
         />
       </svg>
     </div>
@@ -89,11 +102,12 @@ export default function DesignSystemSection() {
           </Reveal>
         </header>
 
-        {/* ── 점·선·면 ── (피그마 원본: 상단 섹션 라벨 없음) — 커넥터가 컬럼을 이어 블록 전체를 함께 등장 */}
-        <Reveal className="flex w-full flex-col gap-10">
+        {/* ── 점·선·면 ── 컬럼(오브젝트+라벨+설명)이 아래→위로 순차 등장(점→선→면) →
+            그 이후에 컬럼 사이 커넥터 선이 그려지듯 등장(delay). */}
+        <div className="flex w-full flex-col gap-10">
           <div className="flex w-full flex-col items-center gap-12 py-6 md:flex-row md:items-start md:justify-center md:gap-6 lg:gap-10">
             {/* 점 */}
-            <div className="flex flex-col items-center">
+            <Reveal className="flex flex-col items-center">
               <div className="flex h-[220px] items-center justify-center">
                 <span
                   className="size-[39px] rounded-full bg-ds-dot"
@@ -108,12 +122,13 @@ export default function DesignSystemSection() {
                 <p className="font-pretendard text-headline font-semibold text-gold">점</p>
                 <p className="font-pretendard text-[21px] leading-[1.6] font-normal text-muted">흩어진 디지털 흔적</p>
               </div>
-            </div>
+            </Reveal>
 
-            <ConnectorLine />
+            {/* 점↔선 커넥터: 컬럼들이 다 뜬 뒤(약 0.85s)에 그려짐 */}
+            <ConnectorLine delay={0.85} />
 
             {/* 선 */}
-            <div className="flex flex-col items-center">
+            <Reveal delay={0.12} className="flex flex-col items-center">
               <div className="flex h-[220px] items-center justify-center">
                 <span
                   className="block h-[194px] w-[5px]"
@@ -124,12 +139,13 @@ export default function DesignSystemSection() {
                 <p className="font-pretendard text-headline font-semibold text-gold">선</p>
                 <p className="font-pretendard text-[21px] leading-[1.6] font-normal text-muted">의미와 실행의 연결</p>
               </div>
-            </div>
+            </Reveal>
 
-            <ConnectorArrow />
+            {/* 선↔면 커넥터: 가로선보다 살짝 더 늦게 그려짐 */}
+            <ConnectorArrow delay={1.0} />
 
             {/* 면 */}
-            <div className="flex flex-col items-center">
+            <Reveal delay={0.24} className="flex flex-col items-center">
               <div className="flex h-[220px] items-center justify-center">
                 <img src="/plane.png" alt="" aria-hidden="true" className="h-[220px] w-[214px] object-contain" />
               </div>
@@ -137,9 +153,9 @@ export default function DesignSystemSection() {
                 <p className="font-pretendard text-headline font-semibold text-gold">면</p>
                 <p className="font-pretendard text-[21px] leading-[1.6] font-normal text-gold">하나의 완성된 에필로그</p>
               </div>
-            </div>
+            </Reveal>
           </div>
-        </Reveal>
+        </div>
 
         {/* ── Visual Motif ── (Figma 1455:1058 반영: 라벨#FFD99D + 본문#FBEDD5 을 20px 간격으로 묶은
             텍스트 그룹 + 우측 로고. 라벨/본문 모두 Pretendard 18px·lh1.6·자간-0.02em.) */}

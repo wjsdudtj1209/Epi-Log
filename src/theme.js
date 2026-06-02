@@ -22,7 +22,7 @@ export const colors = {
   rust:            { var: "--figma-rust",              value: "#BD5400",   figma: "text/subtitle (Overview, node 1380:13317)" }, // Overview 제목 — text/subtitle 최신값(번트오렌지)
   notification:    { var: "--figma-notification",      value: "#ACA08A",   figma: "Notification (node 1380:13318)" }, // 알림 카드 배경 (보통 32% 투명도)
   glow:            { var: "--brand-glow",              value: "#D59A49",   figma: "Ellipse 294 이펙트색 (브랜드)" }, // 반구(아치) 장식 글로우
-  box:             { var: "--figma-box",               value: "#352B1E",   figma: "box (node 1392:918)" }, // 다크 메시지 카드 배경 (Desk Research 맺음)
+  box:             { var: "--figma-box",               value: "#372F2F",   figma: "box (node 1392:924)" }, // 다크 메시지 카드 배경 (Desk Research 맺음)
   textLight:       { var: "--figma-text-light",        value: "#FFBB5B",   figma: "text/light" },       // 밝은 강조
   textLogDefault:  { var: "--figma-text-log-default",  value: "#FBEDD5",   figma: "text/log default" }, // 로그 기본 텍스트
   textLogDefault2: { var: "--figma-text-log-default-2", value: "#FEB951",  figma: "text/log default2" },// 로그 강조(골드)
