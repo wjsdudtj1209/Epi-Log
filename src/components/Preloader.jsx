@@ -179,7 +179,7 @@ export default function Preloader() {
               initial={{ opacity: 0, filter: "blur(8px)", y: 8 }}
               animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
               transition={{ duration: 0.6, ease: "easeInOut", delay: 0.2 }}
-              className="text-center text-sm whitespace-nowrap text-cream/70 sm:text-base"
+              className="text-center text-sm break-keep text-cream/70 sm:text-base"
               style={{ willChange: "transform, filter, opacity" }}
             >
               {LOADING_TEXT}

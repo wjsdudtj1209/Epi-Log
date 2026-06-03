@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 // 상단 메뉴 — 실제 존재하는 섹션 앵커로 연결
 const links = [
@@ -17,11 +17,16 @@ const links = [
  */
 export default function Navbar() {
   const [pastHero, setPastHero] = useState(false);
+  const [open, setOpen] = useState(false); // 모바일 햄버거 메뉴 열림 여부
 
   useEffect(() => {
     // 히어로는 화면 전체 높이(min-h-screen)를 차지합니다.
     // 화면 높이의 80%를 넘게 스크롤하면 히어로를 벗어난 것으로 보고 메뉴를 숨깁니다.
-    const onScroll = () => setPastHero(window.scrollY > window.innerHeight * 0.8);
+    const onScroll = () => {
+      const past = window.scrollY > window.innerHeight * 0.8;
+      setPastHero(past);
+      if (past) setOpen(false); // 히어로를 벗어나면 열려 있던 모바일 메뉴도 닫음
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -36,8 +41,8 @@ export default function Navbar() {
         pastHero ? "pointer-events-none" : ""
       }`}
     >
-      <nav className="mx-auto flex max-w-[1420px] items-center justify-center px-6 py-5 sm:px-10">
-        {/* 메뉴 — 하나의 pill(알약) 모양 리퀴드 글라스 바 (모바일에서는 숨김) */}
+      <nav className="relative mx-auto flex max-w-[1420px] items-center justify-center px-6 py-5 sm:px-10">
+        {/* 데스크톱(≥md) 메뉴 — 하나의 pill(알약) 모양 리퀴드 글라스 바 */}
         <ul className="liquid-glass hidden items-center gap-1 rounded-full px-2 py-1.5 md:flex">
           {links.map((link) => (
             <li key={link.href}>
@@ -50,7 +55,51 @@ export default function Navbar() {
             </li>
           ))}
         </ul>
+
+        {/* 모바일(<md) 햄버거 버튼 — 우측. 누르면 아래 드롭다운을 토글(☰ ↔ ✕).
+            위치(absolute)는 바깥 div에, liquid-glass(position:relative)는 안쪽 button에 분리. */}
+        <div className="absolute top-1/2 right-6 -translate-y-1/2 sm:right-10 md:hidden">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-label="메뉴"
+            aria-expanded={open}
+            className="liquid-glass grid size-11 place-items-center rounded-full text-cream"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+            </svg>
+          </button>
+        </div>
       </nav>
+
+      {/* 모바일(<md) 드롭다운 패널 — 햄버거 아래 우측. 링크를 누르면 닫힘.
+          위치(absolute)는 바깥 motion.div에, liquid-glass는 안쪽 ul에 분리. */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="absolute top-[72px] right-6 w-44 sm:right-10 md:hidden"
+          >
+            <ul className="liquid-glass flex flex-col gap-1 rounded-2xl p-2">
+              {links.map((link) => (
+                <li key={link.href}>
+                  <a
+                    href={link.href}
+                    onClick={() => setOpen(false)}
+                    className="block rounded-xl px-4 py-2.5 text-sm tracking-wide text-cream/80 transition-colors duration-300 hover:bg-white/10 hover:text-gold"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.header>
   );
 }

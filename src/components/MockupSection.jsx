@@ -15,10 +15,36 @@ import PhoneFrame from "./PhoneFrame.jsx";
 
 const SERVICE_SCREENS = ["/mk-start1.png", "/mk-start2.png", "/mk-start3.png", "/mk-start4.png"];
 
+// 각 클러스터의 라벨 문구(eyebrow/title/body) — 데스크톱·모바일 레이아웃이 '같은 텍스트'를 공유하도록
+// 한 곳에 모아둔다. (한쪽만 고쳐서 문구가 달라지는 일을 방지)
+const CLUSTERS = {
+  service: {
+    eyebrow: "SERVICE",
+    title: "당신의 뜻을 남기는 첫걸음",
+    body: "사용자가 남긴 기록을 통해 삶의 흔적과 감정, 생각을 보존하고, AI 기억 에이전트를 통해 그 의미와 연결이 이후에도 이어질 수 있도록 돕습니다.",
+  },
+  home: {
+    eyebrow: "HOME",
+    title: "오늘의 이야기",
+    body: "등록된 자산과 기록 현황을 한눈에 확인하고, 오늘의 질문과 AI 리포트를 통해 당신만의 기억과 이야기를 차곡차곡 완성해 나가는 메인 홈 화면입니다.",
+  },
+  aiAgent: {
+    eyebrow: "AI AGENT",
+    title: "AI 리포트",
+    body: "에필:로그의 AI는 사용자의 답변을 통해 말투, 가치관, 판단 기준을 정리합니다.",
+  },
+};
+
 // 모든 폰 공통 '균일' 드롭섀도(대각선 오프셋 없음 → 기울어 보이지 않음).
 // PhoneFrame은 filter 문자열, StaticPhone은 Tailwind 임의값('_'=공백).
 const PHONE_SHADOW = "drop-shadow(0 20px 40px rgba(41,36,34,0.22))";
 export const PHONE_SHADOW_CLASS = "drop-shadow-[0_20px_40px_rgba(41,36,34,0.22)]";
+
+// AI AGENT GIF 폰 전용 '더 진한' 그림자.
+//  - GIF 폰(scale 0.87)이 옆 리포트 폰보다 작아 같은 그림자라도 약해 보여서, 농도·깊이를 키워 시각적 무게를 맞춤.
+//  - 같은 그림자 색(41,36,34)으로, '접지(가까운) + 확산(먼)' 2겹을 겹쳐 더 또렷하고 깊게 보이게 함.
+//  - 진하기 조절: 아래 0.20 / 0.32 농도값을 ↑(진하게)·↓(연하게).
+const AI_GIF_SHADOW = "drop-shadow(0 6px 14px rgba(41,36,34,0.20)) drop-shadow(0 22px 44px rgba(41,36,34,0.32))";
 
 // ▼▼▼ 폰별 스케일 — 여기 숫자만 바꿔서 개별 조정 ▼▼▼ (SERVICE는 1.0=원래대로)
 const MK = {
@@ -51,18 +77,33 @@ const HM = place(BASE.home, MK.homeScale);
 const AIA = place(BASE.aiAgent, MK.aiAgentScale);
 const AIR = place(BASE.aiReport, MK.aiReportScale);
 
+// AI AGENT 우측 목업: mk-iphone.png 베젤(PhoneFrame) 안에 GIF(ai_epi.gif)를 넣어 실제 폰처럼 표시.
+//  - PhoneFrame의 화면 영역 비율(301.5×655.5=0.460)과 GIF 비율(402×874=0.460)이 같아 왜곡/크롭 없이 딱 맞음.
+//  - 옆 리포트 폰과 비슷한 크기가 되도록 scale을 잡고, 기존 AI 에이전트 박스(AIA)의 중심에 맞춰 배치.
+const AIA_GIF = (() => {
+  const scale = 0.87;                                 // ← 폰 크기 조절(키우려면 ↑, 줄이려면 ↓)
+  const frameW = 329 * scale, frameH = 677 * scale;   // PhoneFrame 기준 프레임 329×677
+  const cx = AIA.left + AIA.width / 2;                 // 기존 AI 에이전트 박스의 중심 x
+  const cy = AIA.top + AIA.height / 2;                 // 중심 y
+  return { scale, left: cx - frameW / 2, top: cy - frameH / 2 };
+})();
+
 /**
  * ClusterLabel: eyebrow → (title → body) 그룹.
  *  - eyebrow 17 SemiBold #A04B00 자간0.02 / title 36 Bold #140F0B lh140 / body 18 Regular #140F0B lh160 자간-0.02 폭355
  *  - 간격: eyebrow→그룹 30px, title→body 20px. break-keep으로 한국어 단어깨짐 방지.
  */
-export function ClusterLabel({ eyebrow, title, body, bodyWidth = 355 }) {
+export function ClusterLabel({ eyebrow, title, body, bodyWidth = 355, center = false }) {
   return (
-    <div className="flex flex-col gap-[30px]">
+    // center=true(모바일)면 가운데 정렬 + 고정폭 대신 최대폭(좁은 화면에서 넘치지 않게).
+    <div className={`flex flex-col gap-[30px] ${center ? "items-center text-center" : ""}`}>
       <p className="font-pretendard text-[17px] font-semibold tracking-[0.02em] text-kf-label">{eyebrow}</p>
-      <div className="flex flex-col gap-[20px]" style={{ width: bodyWidth }}>
-        <h3 className="font-pretendard text-[36px] font-bold leading-[1.4] break-keep text-ink">{title}</h3>
-        <p className="font-pretendard text-[18px] font-normal leading-[1.6] tracking-[-0.02em] break-keep text-ink">
+      <div
+        className="flex flex-col gap-[20px]"
+        style={center ? { maxWidth: bodyWidth } : { width: bodyWidth }}
+      >
+        <h3 className="font-pretendard text-[28px] font-bold leading-[1.4] break-keep text-ink sm:text-[36px]">{title}</h3>
+        <p className="font-pretendard text-[16px] font-normal leading-[1.6] tracking-[-0.02em] break-keep text-ink sm:text-[18px]">
           {body}
         </p>
       </div>
@@ -88,16 +129,13 @@ export function StaticPhone({ src, alt, left, top, width, height, shadow }) {
 export default function MockupSection() {
   return (
     <section id="mockup" className="w-full overflow-hidden bg-mockup-bg">
-      {/* 1440 고정 캔버스(가운데). 상하 패딩 186, 클러스터 세로 간격 239. */}
-      <div className="relative mx-auto flex w-[1440px] flex-col gap-[239px] py-[186px]">
+      {/* [데스크톱 ≥lg] 1440 고정 캔버스(가운데). 상하 패딩 186, 클러스터 세로 간격 239.
+          좁은 화면에서는 숨기고(hidden), 아래의 모바일 전용 세로 스택을 대신 보여준다. */}
+      <div className="relative mx-auto hidden w-[1440px] flex-col gap-[239px] py-[186px] lg:flex">
         {/* ── 클러스터 1: SERVICE (높이 503) ── 라벨(120,120) / 폰(720,-63) 크로스페이드 */}
         <Reveal className="relative h-[503px]">
           <div className="absolute z-10" style={{ left: 120, top: 120 }}>
-            <ClusterLabel
-              eyebrow="SERVICE"
-              title="당신의 뜻을 남기는 첫걸음"
-              body="사용자가 남긴 기록을 통해 삶의 흔적과 감정, 생각을 보존하고, AI 기억 에이전트를 통해 그 의미와 연결이 이후에도 이어질 수 있도록 돕습니다."
-            />
+            <ClusterLabel {...CLUSTERS.service} />
           </div>
           <div className="absolute z-10" style={{ left: SVC.left, top: SVC.top }}>
             <PhoneFrame screens={SERVICE_SCREENS} shadow={PHONE_SHADOW} scale={MK.serviceScale} />
@@ -107,11 +145,7 @@ export default function MockupSection() {
         {/* ── 클러스터 2: HOME (높이 453) ── 라벨(730,120) / 폰(241,-101) static */}
         <Reveal className="relative h-[453px]">
           <div className="absolute z-10" style={{ left: 730, top: 120 }}>
-            <ClusterLabel
-              eyebrow="HOME"
-              title="오늘의 이야기"
-              body="등록된 자산과 기록 현황을 한눈에 확인하고, 오늘의 질문과 AI 리포트를 통해 당신만의 기억과 이야기를 차곡차곡 완성해 나가는 메인 홈 화면입니다."
-            />
+            <ClusterLabel {...CLUSTERS.home} />
           </div>
           <StaticPhone
             src="/mk-home.png"
@@ -142,21 +176,13 @@ export default function MockupSection() {
             }}
           />
           <div className="absolute z-10" style={{ left: 330, top: 120 }}>
-            <ClusterLabel
-              eyebrow="AI AGENT"
-              title="AI 리포트"
-              body="에필:로그의 AI는 사용자의 답변을 통해 말투, 가치관, 판단 기준을 정리합니다."
-            />
+            <ClusterLabel {...CLUSTERS.aiAgent} />
           </div>
-          <StaticPhone
-            src="/mk-ai-agent.png"
-            alt="AI 에이전트 화면"
-            left={AIA.left}
-            top={AIA.top}
-            width={AIA.width}
-            height={AIA.height}
-            shadow={PHONE_SHADOW_CLASS}
-          />
+          {/* 우측 목업: mk-iphone.png 베젤(PhoneFrame) 안에 GIF를 넣어 실제 폰처럼 표시.
+              폰이 작아 그림자가 약해 보이므로, 전용 AI_GIF_SHADOW(더 진한 2겹 그림자)로 무게를 맞춤. */}
+          <div className="absolute z-10" style={{ left: AIA_GIF.left, top: AIA_GIF.top }}>
+            <PhoneFrame screens={["/ai_epi.gif"]} shadow={AI_GIF_SHADOW} scale={AIA_GIF.scale} />
+          </div>
           <StaticPhone
             src="/mk-ai-report.png"
             alt="AI 리포트 화면"
@@ -165,6 +191,37 @@ export default function MockupSection() {
             width={AIR.width}
             height={AIR.height}
             shadow={PHONE_SHADOW_CLASS}
+          />
+        </Reveal>
+      </div>
+
+      {/* [모바일 <lg] 세로 스택: 절대좌표 캔버스 대신, 클러스터(라벨+폰)를 가운데로 차곡차곡 쌓는다.
+          폰은 normal flow로 배치 — PhoneFrame은 그대로 쓰고, StaticPhone(PNG)은 일반 <img>로 표시. */}
+      <div className="flex flex-col items-center gap-24 px-6 py-24 lg:hidden">
+        {/* SERVICE — 시작 화면 캐러셀 */}
+        <Reveal className="flex flex-col items-center gap-8">
+          <ClusterLabel {...CLUSTERS.service} center />
+          <PhoneFrame screens={SERVICE_SCREENS} shadow={PHONE_SHADOW} scale={0.78} />
+        </Reveal>
+
+        {/* HOME — 홈 화면(정적 PNG) */}
+        <Reveal className="flex flex-col items-center gap-8">
+          <ClusterLabel {...CLUSTERS.home} center />
+          <img
+            src="/mk-home.png"
+            alt="Epi:Log 홈 화면 목업"
+            className={`w-[70%] max-w-[280px] object-contain ${PHONE_SHADOW_CLASS}`}
+          />
+        </Reveal>
+
+        {/* AI AGENT — GIF 에이전트 폰 + 리포트 폰(정적 PNG)을 세로로 */}
+        <Reveal className="flex flex-col items-center gap-8">
+          <ClusterLabel {...CLUSTERS.aiAgent} center />
+          <PhoneFrame screens={["/ai_epi.gif"]} shadow={AI_GIF_SHADOW} scale={0.6} />
+          <img
+            src="/mk-ai-report.png"
+            alt="AI 리포트 화면"
+            className={`w-[70%] max-w-[280px] object-contain ${PHONE_SHADOW_CLASS}`}
           />
         </Reveal>
       </div>

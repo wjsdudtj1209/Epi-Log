@@ -29,17 +29,40 @@ const PHONES = [
   { src: "/mk-asset-4.png", alt: "자산 등록 4단계 화면", left: 977, top: 1548 },
 ];
 
-// 번호 스텝(세로 스택): 번호 원(위) → 제목 → 설명. align='right'면 우측정렬.
+// 헤더·스텝 문구(데스크톱·모바일 공유). 모바일 세로 스택은 각 스텝을 PHONES와 짝지어 보여준다.
+const HEADER = {
+  eyebrow: "MY ASSETS",
+  title: "자산 등록",
+  body: (
+    <>
+      무엇을 남기고, 지우고, 전달할지 미리 정해두어
+      <br />
+      남겨진 사람이 혼자 판단하지 않도록 돕습니다.
+    </>
+  ),
+  bodyWidth: 590,
+};
+const STEPS = [
+  { n: "1", title: "유형 선택", desc: "어떤 흔적을 남길지 먼저 고릅니다" },
+  { n: "2", title: "정보 입력", desc: "기억해야 할 정보를 차분히 기록합니다" },
+  { n: "3", title: "기준 선택", desc: "남길 것과 지울 것을 나의 기준으로 정합니다" },
+  { n: "4", title: "실행 설정", desc: "뜻을 실행할 사람과 방법을 연결합니다" },
+];
+
+// 번호 스텝(세로 스택): 번호 원(위) → 제목 → 설명. align='right'면 우측정렬, 'center'면 가운데(모바일).
 function StepItem({ n, title, desc, align = "left" }) {
   const right = align === "right";
+  const center = align === "center";
+  const outer = center ? "items-center" : right ? "items-end" : "items-start";
+  const inner = center ? "items-center text-center" : right ? "items-end text-right" : "items-start";
   return (
-    <div className={`flex flex-col gap-5 ${right ? "items-end" : "items-start"}`}>
+    <div className={`flex flex-col gap-5 ${outer}`}>
       <span className="flex size-[30px] items-center justify-center rounded-full border border-ink font-pretendard text-[21px] leading-none text-ink">
         {n}
       </span>
-      <div className={`flex flex-col gap-[6px] ${right ? "items-end text-right" : "items-start"}`}>
-        <h4 className="font-pretendard text-[32px] font-semibold leading-tight text-ink">{title}</h4>
-        <p className="font-pretendard text-[18px] font-normal leading-[1.6] text-ink">{desc}</p>
+      <div className={`flex flex-col gap-[6px] ${inner}`}>
+        <h4 className="font-pretendard text-[26px] font-semibold leading-tight text-ink sm:text-[32px]">{title}</h4>
+        <p className="font-pretendard text-[16px] font-normal leading-[1.6] text-ink sm:text-[18px]">{desc}</p>
       </div>
     </div>
   );
@@ -271,7 +294,7 @@ export default function MockupSection3() {
       {/* Figma 좌표 그대로(1440×2198), transform/scale 없음 — 절대배치만.
           --mk-asset-scale: 폰만 살짝 확대하는 배율(여기서 한 곳만 고치면 됨). */}
       <div
-        className="relative mx-auto"
+        className="relative mx-auto hidden lg:block"
         style={{ width: BASE_W, height: BASE_H, "--mk-asset-scale": 1.3 }}
       >
         {/* ── 그룹 0: 헤더(MY ASSETS · 자산 등록) + 상단 가로선 ── */}
@@ -280,18 +303,7 @@ export default function MockupSection3() {
               타이틀 쪽(왼쪽 끝)에서 오른쪽으로 뻗어 나가듯 그려짐. */}
           <HLine style={{ left: 885, top: 87.5, height: 1, width: "calc(50vw - 165px)" }} origin="left" anchorTop={87.5} />
           <Abs left={730} top={8}>
-            <ClusterLabel
-              eyebrow="MY ASSETS"
-              title="자산 등록"
-              body={
-                <>
-                  무엇을 남기고, 지우고, 전달할지 미리 정해두어
-                  <br />
-                  남겨진 사람이 혼자 판단하지 않도록 돕습니다.
-                </>
-              }
-              bodyWidth={590}
-            />
+            <ClusterLabel {...HEADER} />
           </Abs>
         </ScrollGroup>
 
@@ -301,7 +313,7 @@ export default function MockupSection3() {
           <DrawLine d="M317.5 743V788C317.5 815.6142 339.8858 838 367.5 838H1069.5" anchorTop={743} />
           <AssetPhone {...PHONES[0]} />
           <Abs left={530} top={541}>
-            <StepItem n="1" title="유형 선택" desc="어떤 흔적을 남길지 먼저 고릅니다" />
+            <StepItem {...STEPS[0]} />
           </Abs>
         </ScrollGroup>
 
@@ -314,7 +326,7 @@ export default function MockupSection3() {
           <DrawLine d="M1191 1085V1245C1191 1272.614 1168.614 1295 1141 1295H560" anchorTop={1085} trigger={0.35} />
           <AssetPhone {...PHONES[1]} />
           <Abs right={416} top={930}>
-            <StepItem n="2" title="정보 입력" desc="기억해야 할 정보를 차분히 기록합니다" align="right" />
+            <StepItem {...STEPS[1]} align="right" />
           </Abs>
         </ScrollGroup>
 
@@ -323,7 +335,7 @@ export default function MockupSection3() {
           <Glow left={414} top={1433} />
           <AssetPhone {...PHONES[2]} />
           <Abs left={646} top={1319}>
-            <StepItem n="3" title="기준 선택" desc="남길 것과 지울 것을 나의 기준으로 정합니다" />
+            <StepItem {...STEPS[2]} />
           </Abs>
         </ScrollGroup>
 
@@ -334,9 +346,25 @@ export default function MockupSection3() {
           <HLine style={{ left: "calc(720px - 50vw)", top: 1779, height: 1, width: "calc(50vw - 115px)" }} origin="left" anchorTop={1779} />
           <AssetPhone {...PHONES[3]} />
           <Abs left={657} top={1708}>
-            <StepItem n="4" title="실행 설정" desc="뜻을 실행할 사람과 방법을 연결합니다" />
+            <StepItem {...STEPS[3]} />
           </Abs>
         </ScrollGroup>
+      </div>
+
+      {/* [모바일 <lg] 세로 스택: 연결선·지그재그 대신, 헤더 + 4단계(번호+제목+설명+폰)를 가운데로 차곡차곡.
+          각 단계는 STEPS[i]와 PHONES[i]를 짝지어 표시. */}
+      <div className="flex flex-col items-center gap-20 px-6 py-24 lg:hidden">
+        <ClusterLabel {...HEADER} center />
+        {STEPS.map((step, i) => (
+          <div key={step.n} className="flex flex-col items-center gap-8">
+            <StepItem {...step} align="center" />
+            <img
+              src={PHONES[i].src}
+              alt={PHONES[i].alt}
+              className={`w-[68%] max-w-[260px] object-contain ${PHONE_SHADOW_CLASS}`}
+            />
+          </div>
+        ))}
       </div>
     </section>
   );

@@ -65,21 +65,37 @@ const LEG = (b, s) => ({ width: b.w * s, height: b.h * s, left: b.left, top: b.t
 const LL = LEG({ w: 257.61, h: 560.08, left: 561, top: -213 }, MK2.legacyScale);
 const LR = LEG({ w: 257.61, h: 560.08, left: 953, top: -64 }, MK2.legacyScale);
 
+// 라벨 문구(데스크톱·모바일 공유). LEGACY body는 줄바꿈(JSX)이 포함되어 그대로 보관.
+const SEC2_LABELS = {
+  memories: {
+    eyebrow: "MEMORIES",
+    title: "기록",
+    body: "소중한 사람에게 전하고 싶은 마음을 관계별로 남기고, 필요한 순간에 전달될 수 있도록 돕습니다.",
+    bodyWidth: 369,
+  },
+  legacy: {
+    eyebrow: "LEGACY",
+    title: "정리함",
+    body: (
+      <>
+        SNS, 구독, 계정, 문서처럼 흩어진 디지털
+        <br />
+        자산을 한곳에 모으는 공간입니다.
+      </>
+    ),
+  },
+};
+
 export default function MockupSection2() {
   // -mt: 위 섹션(AI)과의 빈 간격을 줄여 Figma의 촘촘한 리듬에 맞춤(라이트끼리라 이음새 없음).
   return (
     <section id="mockup-2" className="-mt-[120px] w-full overflow-hidden bg-mockup-bg">
-      {/* 1440 고정 캔버스. 클러스터 세로 간격 313, 하단 패딩(정리함 아래 다음 섹션과의 간격) 186→100으로 축소. */}
-      <div className="relative mx-auto flex w-[1440px] flex-col gap-[313px] pb-[100px]">
+      {/* [데스크톱 ≥lg] 1440 고정 캔버스. 클러스터 세로 간격 313, 하단 패딩 100. 좁은 화면에선 숨김. */}
+      <div className="relative mx-auto hidden w-[1440px] flex-col gap-[313px] pb-[100px] lg:flex">
         {/* ── 클러스터 A: 기록 (라벨 우 / 폰 2대 좌, 나란히) ── 높이로 정리함과의 간격 조절(작을수록 가까움) */}
         <Reveal className="relative h-[760px]">
           <div className="absolute z-10" style={{ left: 937, top: 120 }}>
-            <ClusterLabel
-              eyebrow="MEMORIES"
-              title="기록"
-              body="소중한 사람에게 전하고 싶은 마음을 관계별로 남기고, 필요한 순간에 전달될 수 있도록 돕습니다."
-              bodyWidth={369}
-            />
+            <ClusterLabel {...SEC2_LABELS.memories} />
           </div>
           <StaticPhone src="/mk-record-1.png" alt="기록 화면 1" {...R1} shadow={PHONE_SHADOW_CLASS} />
           <StaticPhone src="/mk-record-2.png" alt="기록 화면 2" {...R2} shadow={PHONE_SHADOW_CLASS} />
@@ -103,21 +119,28 @@ export default function MockupSection2() {
             }}
           />
           <div className="absolute z-10" style={{ left: 120, top: 120 }}>
-            <ClusterLabel
-              eyebrow="LEGACY"
-              title="정리함"
-              body={
-                <>
-                  SNS, 구독, 계정, 문서처럼 흩어진 디지털
-                  <br />
-                  자산을 한곳에 모으는 공간입니다.
-                </>
-              }
-            />
+            <ClusterLabel {...SEC2_LABELS.legacy} />
           </div>
           {/* 폰 2대: 좌(목록)이 위로, 우(실행 기준)가 아래로 스태거 — 위치 유지, 크기만 확대. */}
           <StaticPhone src="/mk-legacy-list.png" alt="정리함 자산 목록 화면" {...LL} shadow={PHONE_SHADOW_CLASS} />
           <StaticPhone src="/mk-legacy-rule.png" alt="정리함 실행 기준 화면" {...LR} shadow={PHONE_SHADOW_CLASS} />
+        </Reveal>
+      </div>
+
+      {/* [모바일 <lg] 세로 스택: 클러스터(라벨 + 폰들)를 가운데로 차곡차곡. */}
+      <div className="flex flex-col items-center gap-24 px-6 py-24 lg:hidden">
+        {/* MEMORIES / 기록 — 폰 2대 세로로 */}
+        <Reveal className="flex flex-col items-center gap-8">
+          <ClusterLabel {...SEC2_LABELS.memories} center />
+          <img src="/mk-record-2.png" alt="기록 화면 2" className={`w-[70%] max-w-[280px] object-contain ${PHONE_SHADOW_CLASS}`} />
+          <img src="/mk-record-1.png" alt="기록 화면 1" className={`w-[64%] max-w-[260px] object-contain ${PHONE_SHADOW_CLASS}`} />
+        </Reveal>
+
+        {/* LEGACY / 정리함 — 폰 2대 세로로 */}
+        <Reveal className="flex flex-col items-center gap-8">
+          <ClusterLabel {...SEC2_LABELS.legacy} center />
+          <img src="/mk-legacy-list.png" alt="정리함 자산 목록 화면" className={`w-[70%] max-w-[280px] object-contain ${PHONE_SHADOW_CLASS}`} />
+          <img src="/mk-legacy-rule.png" alt="정리함 실행 기준 화면" className={`w-[70%] max-w-[280px] object-contain ${PHONE_SHADOW_CLASS}`} />
         </Reveal>
       </div>
     </section>
