@@ -37,11 +37,15 @@ const R2 = {
   left: REC_GROUP_RIGHT - r2w,
   top: DEVICE_TOP - lbTop(r2w, r2h, REC_ASSET2.aw, REC_ASSET2.ah) - REC2_DEVICE_FUDGE,
 };
-// ── record-1: 픽셀 측정값으로 record-2의 '화면'에 정확히 매핑(추측 X) ──
-//  record-2 이미지(332×624) 내 화면 사각형(측정): 좌상단(24,19), 262×563.
-//  record-1 이미지(302×596) 내 콘텐츠(베어 화면) 여백 15, 콘텐츠폭 249.
-const R2_IMG = { w: 332, h: 624, scrX: 24, scrY: 19, scrW: 262, scrH: 563 };
-const R1_IMG = { w: 302, h: 596, margin: 15, contentW: 249 };
+// ── record-1: 픽셀 측정값으로 record-2의 '베젤 안 화면'에 정확히 매핑(추측 X) ──
+//  ★ scrY는 '기기 윗변'이 아니라 '베젤 안 화면 윗변'이어야 함!
+//    record-2 기기(베젤) 윗변=y19, 하지만 위쪽 베젤 아래의 실제 화면 윗변=y23, 아랫변=y576(높이 554).
+//    이전엔 scrY=19(기기 윗변)라 record-1이 위쪽 베젤만큼 위로 붙어 기기 전체 높이처럼 길어 보였음.
+//  contentW=267: record-1 보이는 화면(소스 높이 563)을 record-2 베젤 안 화면 높이(554)에 맞춤
+//    → 세로 높이가 베젤 안 화면과 동일. (이전 262는 기기 높이만큼 길고 위로 붙어 보였음)
+//  scrY=35: 실측 화면 윗변(23)보다 더 내림(미세 조정) — record-1을 조금 더 아래로.
+const R2_IMG = { w: 332, h: 624, scrX: 24, scrY: 35, scrW: 262, scrH: 554 };
+const R1_IMG = { w: 302, h: 596, margin: 14, contentW: 267 };
 const r2Scale = r2w / R2_IMG.w; // record-2 이미지 표시 배율(object-contain, 폭 꽉참)
 const r2vLB = (r2h - R2_IMG.h * r2Scale) / 2; // record-2 박스 내 세로 레터박스
 const r2ScreenTop = R2.top + r2vLB + R2_IMG.scrY * r2Scale; // record-2 화면 윗변(cluster Y)
