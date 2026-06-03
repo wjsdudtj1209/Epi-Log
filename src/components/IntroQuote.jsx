@@ -26,8 +26,8 @@ export default function IntroQuote() {
   // 스프링으로 완만하게 → 스크롤마다 끊기지 않고 매끄럽게.
   const p = useSpring(scrollYProgress, { stiffness: 90, damping: 28, restDelta: 0.0005 });
   // 질문 2줄은 같은 구간으로 '함께' 등장(fade + 상승), 본문은 그 뒤에 등장.
-  const l1o = useTransform(p, [0.2, 0.55], [0, 1]);
-  const l1y = useTransform(p, [0.2, 0.55], [24, 0]);
+  const l1o = useTransform(p, [0.1, 0.55], [0, 1]);
+  const l1y = useTransform(p, [0.1, 0.55], [24, 0]);
   const l2o = l1o; // 2번째 줄도 1번째와 동일 타이밍 → 두 줄 함께 등장
   const l2y = l1y;
   const bodyO = useTransform(p, [0.82, 1.0], [0, 1]);

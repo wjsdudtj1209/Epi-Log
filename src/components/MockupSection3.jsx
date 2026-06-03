@@ -112,10 +112,14 @@ function LineSvg({ children }) {
 }
 
 // 스크롤 방향 양방향 토글: 선 위치(anchorTop)에 둔 보이지 않는 sentinel이
-// 뷰포트 트리거선(하단에서 20% 위 = 높이의 80%)을 '지나 위로' 가면 그려짐(true),
+// 뷰포트 트리거선(화면 높이의 trigger 비율 지점)을 '지나 위로' 가면 그려짐(true),
 // 다시 '아래로' 내려오면 되감김(false). 선이 화면 위로 완전히 지나가도 그려진 상태는 유지됨
-// (boundingClientRect.top 비교 → top<0 이어도 80%보다 위라 true). → 올릴 때만 반대로 되감김.
-function useScrollDrawn(anchorTop) {
+// (boundingClientRect.top 비교 → top<0 이어도 트리거선보다 위라 true). → 올릴 때만 반대로 되감김.
+//
+// trigger: 트리거선의 화면 세로 비율(0~1). 기본 0.8 = 화면 80% 지점(하단 부근).
+//   값을 낮출수록(예: 0.5) 트리거선이 화면 중앙으로 올라가, 더 스크롤해야 그려지고
+//   되감김도 화면 중앙에서 일어나 더 잘 보인다.
+function useScrollDrawn(anchorTop, trigger = 0.8) {
   const reduce = useReducedMotion();
   const sentinelRef = useRef(null);
   const [drawn, setDrawn] = useState(false);
@@ -127,17 +131,19 @@ function useScrollDrawn(anchorTop) {
     }
     const el = sentinelRef.current;
     if (!el) return;
+    // rootMargin 하단 여백을 trigger에 맞춰 계산(예: trigger 0.5 → 하단 -50%).
+    const bottomMargin = Math.round((1 - trigger) * 100);
     const io = new IntersectionObserver(
       ([entry]) => {
-        // sentinel이 트리거선(뷰포트 높이의 80%)보다 위면 그려짐, 아래면 되감김.
-        setDrawn(entry.boundingClientRect.top < window.innerHeight * 0.8);
+        // sentinel이 트리거선(화면 높이의 trigger 비율)보다 위면 그려짐, 아래면 되감김.
+        setDrawn(entry.boundingClientRect.top < window.innerHeight * trigger);
       },
-      // 위/아래 경계를 모두 통과 보고받도록(되감기 위해 disconnect 안 함). 트리거선은 하단 -20%.
-      { threshold: 0, rootMargin: "0px 0px -20% 0px" }
+      // 위/아래 경계를 모두 통과 보고받도록(되감기 위해 disconnect 안 함).
+      { threshold: 0, rootMargin: `0px 0px -${bottomMargin}% 0px` }
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [reduce]);
+  }, [reduce, trigger]);
 
   return [sentinelRef, reduce ? true : drawn];
 }
@@ -156,9 +162,9 @@ function Sentinel({ innerRef, top }) {
 
 // 연결선(SVG) — 선이 화면에 들어오면 pathLength 0→1로 출발 폰 → 다음 폰 방향으로 그려지고,
 // 스크롤을 올리면 1→0으로 반대로 되감김(useScrollDrawn이 스크롤 방향에 따라 토글).
-function DrawLine({ d, anchorTop }) {
+function DrawLine({ d, anchorTop, trigger }) {
   const reduce = useReducedMotion();
-  const [sentinelRef, drawn] = useScrollDrawn(anchorTop);
+  const [sentinelRef, drawn] = useScrollDrawn(anchorTop, trigger);
   return (
     <>
       <Sentinel innerRef={sentinelRef} top={anchorTop} />
@@ -302,8 +308,10 @@ export default function MockupSection3() {
         {/* ── 그룹 ②: 정보 입력 (phone2 + 연결선 phone2→phone3 + 글로우) ── */}
         <ScrollGroup anchorTop={563}>
           <Glow left={913} top={454} />
-          {/* Vector 7936 (phone2→phone3) — 선이 화면에 들어오면 2→3 방향으로 그려짐 */}
-          <DrawLine d="M1191 1085V1245C1191 1272.614 1168.614 1295 1141 1295H560" anchorTop={1085} />
+          {/* Vector 7936 (phone2→phone3) — 선이 화면에 들어오면 2→3 방향으로 그려짐.
+              trigger=0.35: 기준선이 화면 위쪽(35%)이라, 위로 스크롤할 때 선이 더 일찍 줄어들기 시작함
+              (덜 스크롤해도 되감김 시작). 나타나는 시점은 그만큼 조금 더 뒤로. */}
+          <DrawLine d="M1191 1085V1245C1191 1272.614 1168.614 1295 1141 1295H560" anchorTop={1085} trigger={0.35} />
           <AssetPhone {...PHONES[1]} />
           <Abs right={416} top={930}>
             <StepItem n="2" title="정보 입력" desc="기억해야 할 정보를 차분히 기록합니다" align="right" />
