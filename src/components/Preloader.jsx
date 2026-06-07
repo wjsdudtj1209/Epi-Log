@@ -1,106 +1,145 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence, useAnimationFrame } from "framer-motion";
-
-const PARTICLE_COUNT = 56;
-const DURATION = 2300; // 0% → 100%에 걸리는 시간(ms)
-
-// 고정 안내 문구 (한 줄)
-const LOADING_TEXT = "흩어진 디지털 흔적들을 한 곳에 안전하게 모으고 있습니다.";
 
 /**
- * 입자 설정을 한 번만 생성. (phase는 매 프레임 직접 갱신할 가변 값)
- * - 중앙(0,0) 기준 vmax 거리에서 시작 → 화면 가장자리
- * - 2차 베지어(중간점에 수직 오프셋)로 살짝 휘어진 궤적
- * - threshold: 이 진행도를 넘어야 활성(밀도가 진행도에 따라 증가)
+ * Preloader (V7): 코드만으로 만든 인트로 오버레이. (영상 파일 없음)
+ *
+ * 시퀀스 (~6.5초 + 0.8초 페이드아웃):
+ *   1) 0 ~ 1.4s    FLOAT     — 점 20개가 중앙 포함 화면 전역에 퍼져 각자 무중력 유영 + 안내 문구
+ *   2) 1.4 ~ 2.9s  GATHER    — 점들이 '천천히(1.5s)' 중앙으로 모여 작은 '빛나는 구체'(36px)로 병합
+ *   3) 3.0 ~ 3.7s  LEFT      — 구체가 왼쪽으로 글라이드(이때 로고 점 높이까지 살짝 내려감)
+ *   4) 3.75 ~ 4.65 RIGHT     — '같은 높이'로 똑바로 오른쪽 이동(수평) → 중앙 로고의 오른쪽 끝 점에 도착.
+ *                            ★ 이동하는 0.9s 동안 로고가 blur(14px)→0 + opacity 0→1 로 '점점 드러나며 선명'해짐.
+ *   ── 엔딩 ──
+ *   5) ~4.65 ~ 5.65 HOLD     — 로고가 완전히 선명하게 표시된 채 ~1s 머묾(홀드)
+ *   6) 5.65 ~ 6.55s CROSSFADE— 로고가 느긋하게(0.9s) 페이드아웃 (구체도 함께). 타이틀은 여기서 안 그림.
+ *   7) 6.1s ~      FADE      — 오버레이 페이드아웃(로고 아웃의 뒷부분에만 겹침). 걷히면서 밑의 히어로
+ *                            [Epi:Log] '하나'만 드러남 → 이중 노출 없음.
+ *
+ * 구현 원칙:
+ *   - JS 타이머는 "단계(phase) 전환"만 담당, 실제 움직임은 전부 CSS transition/keyframes.
+ *   - 애니메이션 속성은 transform + opacity 만 사용 (구체 글로우의 정적 blur는 허용 범위).
+ *   - 안전장치: 어떤 이유로든 멈추면 9초에 강제 제거 → 검은 화면에 갇히지 않음.
+ *   - prefers-reduced-motion(동작 줄이기): 아예 렌더하지 않고 즉시 히어로 노출.
  */
-function generateConfigs() {
-  return Array.from({ length: PARTICLE_COUNT }, (_, i) => {
+
+// ── 타임라인 (ms) ──────────────────────────────────────────────────────
+const T_FLOAT = 80; //      마운트 직후 → 점/문구 페이드인
+const T_GATHER = 1400; //    점들이 중앙으로 모이기 시작 (이제 더 천천히 1.5s에 걸쳐 수렴)
+const T_LEFT = 3000; //      왼쪽 글라이드 (0.7s) — 점들이 다 모여 구체가 된 뒤 시작
+const T_RIGHT = 3750; //     수평 오른쪽 이동 (0.9s → ~4.65s 도착)
+// (로고는 별도 단계 없이 RIGHT 이동 동안 '블러→선명 + opacity 0→1'로 드러남 — 이동 시간 0.9s와 동기화)
+const T_CROSSFADE = 5650; // 로고 페이드아웃 시작 (느긋한 0.9s) + 구체 아웃. 그 전 ~1s는 로고 완전 표시(홀드)
+const T_FADE = 6100; //      오버레이 페이드아웃 시작 (0.9s) — 로고 아웃의 '뒷부분'에만 겹쳐, 급하게 잘리지 않게
+const T_REMOVE = 7000; //    완전히 제거(언마운트)
+const T_SAFETY = 9000; //    ⛑ 안전장치: 무조건 이 시점엔 강제 제거 (길어진 시퀀스 대비 ~9s)
+
+const DOT_COUNT = 20; // 부유하는 점 개수 (16~22 권장 범위 내)
+const ORB_SIZE = 36; // 구체 코어 지름(px) — 작고 정제된 크기
+
+const LEFT_X = "-16vw"; // 3단계: 왼쪽 글라이드 도착점(가로)
+
+// 로고 이미지(/logo.png, 653×579) 안에서 '오른쪽 끝 점' 중심의 위치 (이미지 박스 대비 비율)
+const LOGO_DOT_X = 0.914; // 가로 91.4%
+const LOGO_DOT_Y = 0.654; // 세로 65.4%
+const LOGO_ASPECT = 579 / 653; // 높이/너비 ≈ 0.8867
+// 화면 중앙 로고에서 그 '오른쪽 끝 점'까지의 중앙 기준 오프셋(로고 너비 W 기준 배수)
+const DOT_DX = LOGO_DOT_X - 0.5; //                 = 0.414 × W
+const DOT_DY = (LOGO_DOT_Y - 0.5) * LOGO_ASPECT; //  ≈ 0.1365 × W
+// 구체의 '도착점 Y'(로고 점 높이) — 왼쪽 글라이드 때 미리 이 높이로 내려둬서, 오른쪽 이동은 순수 수평이 됨.
+const DOT_Y_CSS = `calc(var(--logo-w) * ${DOT_DY})`;
+const DOT_X_CSS = `calc(var(--logo-w) * ${DOT_DX})`;
+
+// 안내 문구 (1단계에서 표시, 2단계에서 사라짐)
+const CAPTION = "흩어진 디지털 흔적들을 한 곳에 안전하게 모으고 있습니다.";
+
+// 단계 순서표 — "지금 단계가 X 이상인가?" 판정에 사용
+const ORDER = [
+  "init", "float", "gather", "left", "right", "crossfade", "fade",
+];
+
+/**
+ * 점(파티클) 설정을 1회만 생성합니다.
+ * 배치: 각도 무작위 + 반지름 √균등 분포(0.04~1.0) → 중앙 포함 화면 전체에 고르게 퍼짐.
+ */
+function generateDots() {
+  return Array.from({ length: DOT_COUNT }, (_, i) => {
     const angle = Math.random() * Math.PI * 2;
-    const distance = 30 + Math.random() * 32; // 30~62 vmax
-    const sx = Math.cos(angle) * distance;
-    const sy = Math.sin(angle) * distance;
-    const curve = (Math.random() - 0.5) * 22;
-    const mx = sx * 0.5 + Math.cos(angle + Math.PI / 2) * curve;
-    const my = sy * 0.5 + Math.sin(angle + Math.PI / 2) * curve;
+    const radius = Math.sqrt(0.04 + 0.96 * Math.random());
+    const amp = 1.5 + Math.random() * 1.5; // 드리프트 진폭 1.5~3vw·vh
+    const wp = () => ({
+      x: (Math.random() - 0.5) * 2 * amp,
+      y: (Math.random() - 0.5) * 2 * amp,
+    });
     return {
       id: i,
-      sx,
-      sy,
-      mx,
-      my,
-      size: 1 + Math.random() * 2.5,
-      opacity: 0.35 + Math.random() * 0.5,
-      baseRate: 0.22 + Math.random() * 0.18, // 초당 사이클 수(speed 1 기준)
-      phase: Math.random(), // 시작 위상 분산 → 즉시 풍성하게
-      threshold: Math.random() * 0.55, // 밀도 활성 임계
+      x: Math.cos(angle) * 46 * radius, // 최대 ±46vw
+      y: Math.sin(angle) * 42 * radius, // 최대 ±42vh
+      size: 2.5 + Math.random() * 2.5, // 2.5~5px
+      honey: Math.random() < 0.4, // 일부는 밝은 허니색(#FFD99D 토큰)
+      delay: Math.random() * 0.3, // 등장/수렴 시차(초)
+      driftDur: 6 + Math.random() * 5, // 드리프트 한 바퀴 6~11초 (점마다 속도 다름)
+      driftDelay: -Math.random() * 8, // 위상 분산(음수 = 중간 지점부터 시작)
+      w1: wp(), // 무작위 경유 지점 3개 → 점마다 전혀 다른 궤적
+      w2: wp(),
+      w3: wp(),
     };
   });
 }
 
-/**
- * Preloader: 프리미엄 로딩 화면.
- * - 중앙 호박색 오브(호흡) + 입자가 사방에서 중앙으로 모임
- * - 입자 속도·밀도는 진행도 0→100%에 따라 유기적으로 가속/증가
- * - 아래에 고정 안내 문구 한 줄
- * - 100% 도달 후 0.4초 멈췄다가 opacity 0 + blur(10px)로 페이드아웃 & 언마운트
- */
+/** 점마다 서로 다른 드리프트 keyframes를 문자열로 생성 (transform만 사용). */
+function buildDriftKeyframes(dots) {
+  return dots
+    .map(
+      (d) => `
+@keyframes preloader-drift-${d.id} {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(${d.w1.x.toFixed(2)}vw, ${d.w1.y.toFixed(2)}vh, 0); }
+  50% { transform: translate3d(${d.w2.x.toFixed(2)}vw, ${d.w2.y.toFixed(2)}vh, 0); }
+  75% { transform: translate3d(${d.w3.x.toFixed(2)}vw, ${d.w3.y.toFixed(2)}vh, 0); }
+}`,
+    )
+    .join("\n");
+}
+
+// 구체의 은은한 맥동 — transform만 사용
+const PULSE_KEYFRAMES = `
+@keyframes preloader-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.07); }
+}`;
+
 export default function Preloader() {
-  const [show, setShow] = useState(true);
+  // 동작 줄이기 설정이면 처음부터 show=false → 아무것도 안 그리고 즉시 히어로.
+  const [show, setShow] = useState(
+    () => !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  const [phase, setPhase] = useState("init");
 
-  const configsRef = useRef(null);
-  if (!configsRef.current) configsRef.current = generateConfigs();
-  const particlesRef = useRef([]); // 입자 DOM 노드
-  const startRef = useRef(null);
-  const completedRef = useRef(false);
+  // 점 설정 + 점별 keyframes CSS는 첫 렌더에서 한 번만 생성
+  const dotsRef = useRef(null);
+  if (!dotsRef.current) {
+    const dots = generateDots();
+    dotsRef.current = { dots, css: buildDriftKeyframes(dots) + PULSE_KEYFRAMES };
+  }
 
-  // 매 프레임: 진행도 계산 + 입자 직접 렌더 (React 리렌더와 분리 → 끊김 없음)
-  useAnimationFrame((time, delta) => {
-    if (startRef.current === null) startRef.current = time;
-    const t = Math.min(1, (time - startRef.current) / DURATION);
-    const pct = Math.round(t * t * 100); // ease-in → 후반 가속
+  // "지금 단계가 p 이상 진행됐나?"
+  const atLeast = (p) => ORDER.indexOf(phase) >= ORDER.indexOf(p);
 
-    if (pct >= 100 && !completedRef.current) {
-      completedRef.current = true;
-      // 완성 상태를 잠깐 인지시킨 뒤 페이드아웃
-      window.setTimeout(() => setShow(false), 400);
-    }
-
-    // ── 입자 업데이트 (속도·밀도 진행도 연동) ──
-    const cfgs = configsRef.current;
-    const nodes = particlesRef.current;
-    const prog = pct / 100;
-    const speedFactor = 0.55 + prog * 0.95; // 0.55 → 1.5 가속
-    const vmax = Math.max(window.innerWidth, window.innerHeight) / 100;
-
-    for (let i = 0; i < cfgs.length; i++) {
-      const node = nodes[i];
-      if (!node) continue;
-      const c = cfgs[i];
-      c.phase += (delta / 1000) * c.baseRate * speedFactor;
-      if (c.phase >= 1) c.phase -= 1;
-
-      const p = c.phase;
-      const om = 1 - p;
-      // 2차 베지어: S→M→중앙(0,0)
-      const bx = (om * om * c.sx + 2 * om * p * c.mx) * vmax;
-      const by = (om * om * c.sy + 2 * om * p * c.my) * vmax;
-
-      let op = c.opacity;
-      if (p < 0.12) op *= p / 0.12; // 등장 페이드인
-      else if (p > 0.85) op *= 1 - (p - 0.85) / 0.15; // 흡수 페이드아웃
-      // 밀도: 진행도가 임계를 넘으면 부드럽게 활성
-      op *= Math.max(0, Math.min(1, (prog - c.threshold) / 0.12));
-
-      node.style.transform = `translate3d(${bx}px, ${by}px, 0)`;
-      node.style.opacity = op.toFixed(3);
-    }
-  });
-
-  // 안전장치: rAF 완료가 어떤 이유로든 실패해도 최대 시간이 지나면 강제로 닫아
-  // body 스크롤 잠금이 영구화(=페이지 멈춤/요소 안 보임)되는 것을 방지
+  // ── 타임라인: JS 타이머는 단계 전환만 담당 ──
   useEffect(() => {
-    const safety = setTimeout(() => setShow(false), DURATION + 1800);
-    return () => clearTimeout(safety);
+    if (!show) return;
+    const timers = [
+      setTimeout(() => setPhase("float"), T_FLOAT),
+      setTimeout(() => setPhase("gather"), T_GATHER),
+      setTimeout(() => setPhase("left"), T_LEFT),
+      setTimeout(() => setPhase("right"), T_RIGHT),
+      setTimeout(() => setPhase("crossfade"), T_CROSSFADE),
+      setTimeout(() => setPhase("fade"), T_FADE),
+      setTimeout(() => setShow(false), T_REMOVE),
+      setTimeout(() => setShow(false), T_SAFETY), // ⛑ 안전장치
+    ];
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 진입 즉시: 브라우저 스크롤 복원 끄고 맨 위(히어로)로 고정
@@ -116,77 +155,173 @@ export default function Preloader() {
     };
   }, []);
 
-  // 프리로더가 떠 있는 동안 스크롤 잠금 → 사라질 때 풀고 무조건 히어로(맨 위)로
+  // 떠 있는 동안 스크롤 잠금 → 사라질 때 풀고 맨 위로 + (필요 시) 신호
   useEffect(() => {
     if (show) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
       window.scrollTo(0, 0);
-      // 히어로 헤드라인 슬라이드인 트리거: 프리로더가 사라지기 시작할 때 알림.
       window.dispatchEvent(new Event("preloader:done"));
     }
   }, [show]);
 
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-black"
-          initial={{ opacity: 1, filter: "blur(0px)" }}
-          exit={{ opacity: 0, filter: "blur(10px)" }}
-          transition={{ duration: 0.7, ease: "easeInOut" }}
-        >
-          {/* 외곽의 흐릿한 글로우 (작게) */}
-          <motion.div
-            aria-hidden="true"
-            className="absolute h-[280px] w-[280px] rounded-full bg-[radial-gradient(circle,rgba(254,185,81,0.55),rgba(254,185,81,0.15)_45%,transparent_70%)] blur-3xl"
-            animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.85, 1, 0.85] }}
-            transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}
-            style={{ willChange: "transform, opacity" }}
-          />
-          {/* 중앙의 따뜻한 코어 (작게) */}
-          <motion.div
-            aria-hidden="true"
-            className="absolute h-14 w-14 rounded-full bg-[radial-gradient(circle,rgba(255,222,160,0.95),rgba(254,185,81,0.55)_55%,transparent_75%)] blur-md"
-            animate={{ scale: [0.95, 1.05, 0.95] }}
-            transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}
-            style={{ willChange: "transform" }}
-          />
+  if (!show) return null;
 
-          {/* 입자 — useAnimationFrame에서 transform/opacity 직접 제어 */}
-          {configsRef.current.map((c, i) => (
+  const gathered = atLeast("gather"); // 2단계 이상: 점들이 중앙으로
+  // 로고: 구체가 오른쪽으로 이동하는 'right' 단계 동안 드러나기 시작(블러→선명) → crossfade에서 아웃
+  const logoVisible = atLeast("right") && !atLeast("crossfade");
+  const orbGone = atLeast("crossfade"); // 구체: crossfade에서 함께 아웃
+  const fading = phase === "fade"; //     전체 페이드아웃 (걷히면서 밑의 히어로 [Epi:Log]가 드러남)
+
+  // 3·4단계 구체 경로:
+  //  - left:  (-16vw, 로고점 높이)   ← 여기서 미리 Y를 로고 점 높이까지 내림
+  //  - right: ( 로고점 X, 로고점 높이) ← Y 그대로 유지 → '순수 수평' 이동
+  const carrierTransform = atLeast("right")
+    ? `translate(-50%, -50%) translate(${DOT_X_CSS}, ${DOT_Y_CSS})`
+    : atLeast("left")
+      ? `translate(-50%, -50%) translate(${LEFT_X}, ${DOT_Y_CSS})`
+      : "translate(-50%, -50%)";
+  const carrierTransition = atLeast("right")
+    ? "transform 0.9s cubic-bezier(0.45, 0, 0.25, 1)" // 수평 이동: 차분한 ease-in-out
+    : "transform 0.7s cubic-bezier(0.5, 0, 0.2, 1)"; //   왼쪽 글라이드
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] overflow-hidden bg-night"
+      style={{
+        "--logo-w": "clamp(300px, 32vw, 470px)", // 로고 표시·구체 도착점이 공유하는 단일 값
+        opacity: fading ? 0 : 1,
+        transition: "opacity 0.8s ease-in-out",
+        pointerEvents: fading ? "none" : "auto",
+      }}
+      aria-hidden="true"
+    >
+      {/* 이 컴포넌트 전용 keyframes — 점별 드리프트 + 구체 맥동 (transform만 사용) */}
+      <style>{dotsRef.current.css}</style>
+
+      {/* ── 1·2단계: 자유 부유하는 점들 → 중앙 수렴 ── */}
+      {dotsRef.current.dots.map((d) => (
+        <span
+          key={d.id}
+          className="absolute top-1/2 left-1/2"
+          style={{
+            transform: gathered
+              ? "translate(0vw, 0vh)"
+              : `translate(${d.x}vw, ${d.y}vh)`,
+            opacity: phase === "init" ? 0 : gathered ? 0 : 1,
+            transition: gathered
+              ? // 더 천천히(1.5s) 중앙으로 수렴 → 도착할 무렵(+1.1s) 구체 속으로 흡수되듯 사라짐
+                `transform 1.5s cubic-bezier(0.55, 0, 0.2, 1) ${d.delay}s, opacity 0.45s ease ${d.delay + 1.1}s`
+              : `opacity 0.8s ease ${d.delay}s`,
+            willChange: "transform, opacity",
+          }}
+        >
+          <span
+            className="block"
+            style={{
+              animation: `preloader-drift-${d.id} ${d.driftDur}s ease-in-out ${d.driftDelay}s infinite`,
+              willChange: "transform",
+            }}
+          >
             <span
-              key={c.id}
-              ref={(el) => (particlesRef.current[i] = el)}
-              aria-hidden="true"
-              className="absolute top-1/2 left-1/2 rounded-full bg-gold"
+              className={`block rounded-full ${d.honey ? "bg-honey" : "bg-gold"}`}
               style={{
-                width: c.size,
-                height: c.size,
-                marginLeft: -c.size / 2,
-                marginTop: -c.size / 2,
-                opacity: 0,
-                boxShadow: "0 0 4px rgba(254,185,81,0.85)",
-                willChange: "transform, opacity",
+                width: d.size,
+                height: d.size,
+                marginLeft: -d.size / 2,
+                marginTop: -d.size / 2,
+                boxShadow: "0 0 7px 2px rgba(254, 185, 81, 0.55)",
               }}
             />
-          ))}
+          </span>
+        </span>
+      ))}
 
-          {/* 중앙 아래: 고정 안내 문구 (한 줄, 잘리지 않게) */}
-          <div className="absolute bottom-[26%] left-1/2 z-10 -translate-x-1/2 px-6">
-            <motion.p
-              initial={{ opacity: 0, filter: "blur(8px)", y: 8 }}
-              animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-              transition={{ duration: 0.6, ease: "easeInOut", delay: 0.2 }}
-              className="text-center text-sm break-keep text-cream/70 sm:text-base"
-              style={{ willChange: "transform, filter, opacity" }}
-            >
-              {LOADING_TEXT}
-            </motion.p>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+      {/* ── 2~4단계: 병합된 구체 — 중앙 → 왼쪽(로고점 높이로 하강) → 수평 오른쪽으로 로고 끝점 도착 ── */}
+      <div
+        className="absolute top-1/2 left-1/2"
+        style={{
+          transform: carrierTransform,
+          transition: carrierTransition,
+          willChange: "transform",
+        }}
+      >
+        <div
+          style={{
+            width: ORB_SIZE,
+            height: ORB_SIZE,
+            transform: gathered ? "scale(1)" : "scale(0)",
+            opacity: orbGone ? 0 : 1,
+            transition:
+              "transform 0.7s cubic-bezier(0.34, 1.25, 0.5, 1) 0.9s, opacity 0.9s ease", // 점들이 천천히 다 모이는 시점(~0.9s 후)에 구체가 맺힘 / 퇴장은 0.9s
+            willChange: "transform, opacity",
+          }}
+        >
+          {/* 뒤 레이어: 넓은 오렌지 헤일로 (정적 blur) */}
+          <div
+            aria-hidden="true"
+            className="absolute top-1/2 left-1/2 rounded-full"
+            style={{
+              width: ORB_SIZE * 2.8,
+              height: ORB_SIZE * 2.8,
+              transform: "translate(-50%, -50%)",
+              background:
+                "radial-gradient(circle, rgba(255, 164, 17, 0.5) 0%, rgba(255, 164, 17, 0.18) 45%, transparent 70%)",
+              filter: "blur(10px)",
+            }}
+          />
+          {/* 코어: 밝은 중심(honey→gold)이 오렌지(--color-accent = #FFA411)로 번지다 투명으로 */}
+          <div
+            className="relative h-full w-full rounded-full"
+            style={{
+              background:
+                "radial-gradient(circle, var(--color-honey) 0%, var(--color-gold) 32%, var(--color-accent) 55%, rgba(255, 164, 17, 0.25) 72%, transparent 80%)",
+              boxShadow:
+                "0 0 18px 6px rgba(255, 164, 17, 0.45), 0 0 48px 18px rgba(255, 164, 17, 0.18)",
+              animation: "preloader-pulse 3s ease-in-out infinite",
+            }}
+          />
+        </div>
+      </div>
+
+      {/* ── 5·6단계: Visual Motif 로고(/logo.png), 화면 정중앙. crossfade에서 페이드아웃 ── */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <img
+          src="/logo.png"
+          alt=""
+          className="max-w-none"
+          style={{
+            width: "var(--logo-w)",
+            transform: `scale(${logoVisible ? 1 : 0.985})`,
+            transformOrigin: `${LOGO_DOT_X * 100}% ${LOGO_DOT_Y * 100}%`,
+            opacity: logoVisible ? 1 : 0,
+            // 핵심: 구체가 오른쪽으로 이동하는 0.9s 동안 blur(14px)→0 + opacity 0→1
+            //        → '점이 이동하면서 로고가 점점 드러나고 선명해지는' 효과.
+            // 퇴장(crossfade): 다시 옅어지며 살짝 흐려져 부드럽게 사라짐.
+            filter: logoVisible ? "blur(0px)" : "blur(14px)",
+            transition: logoVisible
+              ? "opacity 0.9s ease-out, filter 0.9s ease-out, transform 0.9s ease-out"
+              : "opacity 0.9s ease-in, filter 0.9s ease-in, transform 0.9s ease-in",
+            willChange: "transform, opacity, filter",
+          }}
+        />
+      </div>
+
+      {/* [Epi:Log] 타이틀은 오버레이에서 그리지 않습니다. 로고가 사라지는 타이밍과 오버레이 페이드가
+          겹치도록 맞춰서(아래 T_FADE 참고), 오버레이가 걷힐 때 밑의 '히어로 [Epi:Log] 하나'만
+          자연스럽게 드러납니다 → 타이틀이 두 번 보이지 않음. */}
+
+      {/* ── 1단계 안내 문구: 중앙 아래쪽, 2단계 진입과 함께 페이드아웃 ── */}
+      <p
+        className="font-pretendard text-p1 absolute bottom-[24%] left-1/2 -translate-x-1/2 px-6 text-center break-keep text-cream-warm/80"
+        style={{
+          opacity: phase === "float" ? 1 : 0,
+          transition: phase === "float" ? "opacity 0.8s ease 0.3s" : "opacity 0.5s ease",
+        }}
+      >
+        {CAPTION}
+      </p>
+    </div>
   );
 }

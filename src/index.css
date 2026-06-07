@@ -212,3 +212,33 @@ body {
     --seam-radius: 24px;
   }
 }
+
+/* 8) 스크롤 유도 인디케이터 — 마우스 윤곽 안의 작은 점이 아래로 흐르며 '스크롤'을 암시.
+      Hero(상시) + Preloader(엔딩) 양쪽에서 공유합니다. transform/opacity만 사용.
+      동작 줄이기(reduced-motion)에서는 애니메이션을 끄고 점만 정적으로 보입니다. */
+@keyframes scroll-cue-dot {
+  0% {
+    transform: translate(-50%, 0);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  70% {
+    transform: translate(-50%, 9px);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, 9px);
+    opacity: 0;
+  }
+}
+.scroll-cue-dot {
+  animation: scroll-cue-dot 1.9s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue-dot {
+    animation: none;
+    opacity: 0.8;
+  }
+}
