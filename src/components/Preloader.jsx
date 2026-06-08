@@ -24,14 +24,14 @@ import { useEffect, useRef, useState } from "react";
 
 // ── 타임라인 (ms) ──────────────────────────────────────────────────────
 const T_FLOAT = 80; //      마운트 직후 → 점/문구 페이드인
-const T_GATHER = 1400; //    점들이 중앙으로 모이기 시작 (이제 더 천천히 1.5s에 걸쳐 수렴)
-const T_LEFT = 3000; //      왼쪽 글라이드 (0.7s) — 점들이 다 모여 구체가 된 뒤 시작
-const T_RIGHT = 3750; //     수평 오른쪽 이동 (0.9s → ~4.65s 도착)
+const T_GATHER = 2200; //    점들이 중앙으로 모이기 시작 (문구를 +0.8s 더 보여준 뒤 수렴 / 1.5s에 걸쳐)
+const T_LEFT = 3800; //      왼쪽 글라이드 (0.7s) — 점들이 다 모여 구체가 된 뒤 시작
+const T_RIGHT = 4550; //     수평 오른쪽 이동 (0.9s → ~5.45s 도착)
 // (로고는 별도 단계 없이 RIGHT 이동 동안 '블러→선명 + opacity 0→1'로 드러남 — 이동 시간 0.9s와 동기화)
-const T_CROSSFADE = 5650; // 로고 페이드아웃 시작 (느긋한 0.9s) + 구체 아웃. 그 전 ~1s는 로고 완전 표시(홀드)
-const T_FADE = 6100; //      오버레이 페이드아웃 시작 (0.9s) — 로고 아웃의 '뒷부분'에만 겹쳐, 급하게 잘리지 않게
-const T_REMOVE = 7000; //    완전히 제거(언마운트)
-const T_SAFETY = 9000; //    ⛑ 안전장치: 무조건 이 시점엔 강제 제거 (길어진 시퀀스 대비 ~9s)
+const T_CROSSFADE = 6450; // 로고 페이드아웃 시작 (느긋한 0.9s) + 구체 아웃. 그 전 ~1s는 로고 완전 표시(홀드)
+const T_FADE = 6900; //      오버레이 페이드아웃 시작 (0.9s) — 로고 아웃의 '뒷부분'에만 겹쳐, 급하게 잘리지 않게
+const T_REMOVE = 7800; //    완전히 제거(언마운트)
+const T_SAFETY = 9800; //    ⛑ 안전장치: 무조건 이 시점엔 강제 제거 (길어진 시퀀스 대비)
 
 const DOT_COUNT = 20; // 부유하는 점 개수 (16~22 권장 범위 내)
 const ORB_SIZE = 36; // 구체 코어 지름(px) — 작고 정제된 크기
@@ -45,12 +45,13 @@ const LOGO_ASPECT = 579 / 653; // 높이/너비 ≈ 0.8867
 // 화면 중앙 로고에서 그 '오른쪽 끝 점'까지의 중앙 기준 오프셋(로고 너비 W 기준 배수)
 const DOT_DX = LOGO_DOT_X - 0.5; //                 = 0.414 × W
 const DOT_DY = (LOGO_DOT_Y - 0.5) * LOGO_ASPECT; //  ≈ 0.1365 × W
-// 구체의 '도착점 Y'(로고 점 높이) — 왼쪽 글라이드 때 미리 이 높이로 내려둬서, 오른쪽 이동은 순수 수평이 됨.
-const DOT_Y_CSS = `calc(var(--logo-w) * ${DOT_DY})`;
 const DOT_X_CSS = `calc(var(--logo-w) * ${DOT_DX})`;
+// 로고를 위로 끌어올리는 양 — 이미지 박스가 아니라 '글자/빛점'(이미지의 65.4% 높이)이
+// 화면 정중앙에 오도록 DOT_DY 만큼 올린다. (앞의 구체·뒤의 히어로 [Epi:Log]와 같은 높이)
+const LOGO_SHIFT_Y_CSS = `calc(var(--logo-w) * ${-DOT_DY})`;
 
 // 안내 문구 (1단계에서 표시, 2단계에서 사라짐)
-const CAPTION = "흩어진 디지털 흔적들을 한 곳에 안전하게 모으고 있습니다.";
+const CAPTION = "흩어진 디지털 흔적들을 한 곳에 안전하게 모으고 있습니다";
 
 // 단계 순서표 — "지금 단계가 X 이상인가?" 판정에 사용
 const ORDER = [
@@ -108,6 +109,13 @@ const PULSE_KEYFRAMES = `
   50%      { transform: scale(1.07); }
 }`;
 
+// 문구 끝 '...' 로딩 점 — 점마다 시차를 두고 깜빡임 (opacity만 사용)
+const ELLIPSIS_KEYFRAMES = `
+@keyframes preloader-ellipsis {
+  0%, 80%, 100% { opacity: 0.2; }
+  40%           { opacity: 1; }
+}`;
+
 export default function Preloader() {
   // 동작 줄이기 설정이면 처음부터 show=false → 아무것도 안 그리고 즉시 히어로.
   const [show, setShow] = useState(
@@ -119,7 +127,10 @@ export default function Preloader() {
   const dotsRef = useRef(null);
   if (!dotsRef.current) {
     const dots = generateDots();
-    dotsRef.current = { dots, css: buildDriftKeyframes(dots) + PULSE_KEYFRAMES };
+    dotsRef.current = {
+      dots,
+      css: buildDriftKeyframes(dots) + PULSE_KEYFRAMES + ELLIPSIS_KEYFRAMES,
+    };
   }
 
   // "지금 단계가 p 이상 진행됐나?"
@@ -174,13 +185,13 @@ export default function Preloader() {
   const orbGone = atLeast("crossfade"); // 구체: crossfade에서 함께 아웃
   const fading = phase === "fade"; //     전체 페이드아웃 (걷히면서 밑의 히어로 [Epi:Log]가 드러남)
 
-  // 3·4단계 구체 경로:
-  //  - left:  (-16vw, 로고점 높이)   ← 여기서 미리 Y를 로고 점 높이까지 내림
-  //  - right: ( 로고점 X, 로고점 높이) ← Y 그대로 유지 → '순수 수평' 이동
+  // 3·4단계 구체 경로 (로고를 위로 올려 빛점을 화면 정중앙에 맞췄으므로, 구체도 Y=중앙 유지):
+  //  - left:  (-16vw, 중앙)   ← 수평 높이는 화면 정중앙 그대로
+  //  - right: ( 로고점 X, 중앙) ← Y 그대로 유지 → '순수 수평' 이동, 빛점에 도착
   const carrierTransform = atLeast("right")
-    ? `translate(-50%, -50%) translate(${DOT_X_CSS}, ${DOT_Y_CSS})`
+    ? `translate(-50%, -50%) translate(${DOT_X_CSS}, 0px)`
     : atLeast("left")
-      ? `translate(-50%, -50%) translate(${LEFT_X}, ${DOT_Y_CSS})`
+      ? `translate(-50%, -50%) translate(${LEFT_X}, 0px)`
       : "translate(-50%, -50%)";
   const carrierTransition = atLeast("right")
     ? "transform 0.9s cubic-bezier(0.45, 0, 0.25, 1)" // 수평 이동: 차분한 ease-in-out
@@ -285,8 +296,12 @@ export default function Preloader() {
         </div>
       </div>
 
-      {/* ── 5·6단계: Visual Motif 로고(/logo.png), 화면 정중앙. crossfade에서 페이드아웃 ── */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      {/* ── 5·6단계: Visual Motif 로고(/logo.png). 이미지 박스가 아니라 '글자/빛점'이
+          화면 정중앙에 오도록 위로(LOGO_SHIFT_Y) 끌어올림. crossfade에서 페이드아웃 ── */}
+      <div
+        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        style={{ transform: `translateY(${LOGO_SHIFT_Y_CSS})` }}
+      >
         <img
           src="/logo.png"
           alt=""
@@ -314,13 +329,28 @@ export default function Preloader() {
 
       {/* ── 1단계 안내 문구: 중앙 아래쪽, 2단계 진입과 함께 페이드아웃 ── */}
       <p
-        className="font-pretendard text-p1 absolute bottom-[24%] left-1/2 -translate-x-1/2 px-6 text-center break-keep text-cream-warm/80"
+        className="font-pretendard text-noti absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 text-center break-keep text-cream-warm/80"
         style={{
           opacity: phase === "float" ? 1 : 0,
           transition: phase === "float" ? "opacity 0.8s ease 0.3s" : "opacity 0.5s ease",
         }}
       >
         {CAPTION}
+        {/* 끝의 '...' — 점 3개가 시차를 두고 천천히 깜빡이는 로딩 애니메이션.
+            간격은 '점과 점 사이'(marginLeft)로만 줘서 마지막 점 뒤에 빈 공간이 안 생김
+            → text-center 기준이 그대로 유지되어 문장이 중앙에 정렬됨. */}
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            style={{
+              marginLeft: i === 0 ? "0.12em" : "0.3em",
+              animation: `preloader-ellipsis 2s ease-in-out ${i * 0.35}s infinite`,
+              willChange: "opacity",
+            }}
+          >
+            .
+          </span>
+        ))}
       </p>
     </div>
   );
