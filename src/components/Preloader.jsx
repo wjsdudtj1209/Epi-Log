@@ -51,7 +51,7 @@ const DOT_X_CSS = `calc(var(--logo-w) * ${DOT_DX})`;
 const LOGO_SHIFT_Y_CSS = `calc(var(--logo-w) * ${-DOT_DY})`;
 
 // 안내 문구 (1단계에서 표시, 2단계에서 사라짐)
-const CAPTION = "흩어진 디지털 흔적들을 한 곳에 안전하게 모으고 있습니다";
+const CAPTION = "흩어진 흔적, 하나의 기록으로";
 
 // 단계 순서표 — "지금 단계가 X 이상인가?" 판정에 사용
 const ORDER = [
