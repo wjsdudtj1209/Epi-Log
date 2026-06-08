@@ -16,8 +16,33 @@ export default function Hero() {
       id="top"
       className="relative flex h-screen w-full items-center justify-center overflow-hidden bg-night"
     >
+      {/* ── 배경 이미지(어둡게 깔기) — bg-night 베이스 위에 3겹으로 쌓아 '중간' 어둡기 ──
+          (1) hero-bg.png: 검정 배경의 앰버 빛줄기. object-cover로 화면을 채우고 opacity로 1차 톤다운.
+          (2) flat 오버레이: night 토큰을 반투명으로 덮어 전체를 한 단계 더 어둡게.
+          (3) 중앙 비네팅: [Epi:Log] 글자 뒤(중앙)를 더 어둡게 모아 가독성 확보 / 가장자리는 빛줄기가 분위기로 남음.
+          Preloader가 걷힐 때 이 어두운 면이 자연스럽게 드러나며 이어집니다(심리스 핸드오프). */}
+      <img
+        src="/hero-bg.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        style={{ opacity: 0.55 }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-night/40"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 60% 55% at 50% 50%, color-mix(in srgb, var(--color-night) 72%, transparent) 0%, transparent 72%)",
+        }}
+      />
+
       <h1
-        className="font-tan text-honey"
+        className="relative z-10 font-tan text-honey"
         style={{
           // 데스크톱 77px(=5.35vw@1440), 작은 화면에서 비례 축소(최소 2.5rem).
           // (Preloader의 중앙 타이틀과 동일 수치 — 바꾸면 두 곳을 함께 바꿔야 함)
@@ -31,7 +56,7 @@ export default function Hero() {
       </h1>
 
       {/* 스크롤 유도 인디케이터 (하단 중앙) — Preloader 엔딩의 것과 동일 위치·디자인. */}
-      <div className="pointer-events-none absolute bottom-10 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
+      <div className="pointer-events-none absolute bottom-10 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2">
         <span className="relative block h-9 w-[22px] rounded-full border border-gold/45">
           <span className="scroll-cue-dot absolute left-1/2 top-[7px] h-[7px] w-[3px] rounded-full bg-gold/85" />
         </span>

@@ -28,19 +28,22 @@ const T_GATHER = 2200; //    점들이 중앙으로 모이기 시작 (문구를 
 const T_LEFT = 3800; //      왼쪽 글라이드 (0.7s) — 점들이 다 모여 구체가 된 뒤 시작
 const T_RIGHT = 4550; //     수평 오른쪽 이동 (0.9s → ~5.45s 도착)
 // (로고는 별도 단계 없이 RIGHT 이동 동안 '블러→선명 + opacity 0→1'로 드러남 — 이동 시간 0.9s와 동기화)
-const T_CROSSFADE = 6450; // 로고 페이드아웃 시작 (느긋한 0.9s) + 구체 아웃. 그 전 ~1s는 로고 완전 표시(홀드)
-const T_FADE = 6900; //      오버레이 페이드아웃 시작 (0.9s) — 로고 아웃의 '뒷부분'에만 겹쳐, 급하게 잘리지 않게
-const T_REMOVE = 7800; //    완전히 제거(언마운트)
-const T_SAFETY = 9800; //    ⛑ 안전장치: 무조건 이 시점엔 강제 제거 (길어진 시퀀스 대비)
+const T_CROSSFADE = 5950; // 로고 페이드아웃 시작 (0.7s) + 구체 아웃. 그 전 ~0.5s는 로고 완전 표시(홀드 단축)
+const T_FADE = 6350; //      오버레이 페이드아웃 시작 (0.65s) — 로고 아웃의 '뒷부분'에 겹쳐, 급하게 잘리지 않게
+const T_REMOVE = 7250; //    완전히 제거(언마운트)
+const T_SAFETY = 9300; //    ⛑ 안전장치: 무조건 이 시점엔 강제 제거 (길어진 시퀀스 대비)
 
 const DOT_COUNT = 20; // 부유하는 점 개수 (16~22 권장 범위 내)
-const ORB_SIZE = 36; // 구체 코어 지름(px) — 작고 정제된 크기
+// 구체 코어 지름 — 로고 맨 우측 '빛점'과 같은 크기로 도킹되도록 로고폭(--logo-w)에 비례.
+//   로고폭 clamp(300~470px) 기준 약 15~24px → 로고 점과 자연스럽게 일치.
+const ORB_SIZE = "calc(var(--logo-w) * 0.05)";
 
 const LEFT_X = "-16vw"; // 3단계: 왼쪽 글라이드 도착점(가로)
 
 // 로고 이미지(/logo.png, 653×579) 안에서 '오른쪽 끝 점' 중심의 위치 (이미지 박스 대비 비율)
-const LOGO_DOT_X = 0.914; // 가로 91.4%
-const LOGO_DOT_Y = 0.654; // 세로 65.4%
+// ※ PNG 픽셀 실측값(점 코어 무게중심): X 0.9155 · Y 0.6751 — 구체가 실제 점에 정확히 도킹되도록 보정.
+const LOGO_DOT_X = 0.9155; // 가로 91.55%
+const LOGO_DOT_Y = 0.675; //  세로 67.5%
 const LOGO_ASPECT = 579 / 653; // 높이/너비 ≈ 0.8867
 // 화면 중앙 로고에서 그 '오른쪽 끝 점'까지의 중앙 기준 오프셋(로고 너비 W 기준 배수)
 const DOT_DX = LOGO_DOT_X - 0.5; //                 = 0.414 × W
@@ -116,6 +119,22 @@ const ELLIPSIS_KEYFRAMES = `
   40%           { opacity: 1; }
 }`;
 
+// 구체가 이동할 때 진행 방향 '뒤'로 늘어나는 빛 잔상(혜성 꼬리).
+//   - 1회성으로 재생: 빠르게 번쩍 늘어났다가 도착하며 흡수되듯 사라짐 (opacity + scaleX만 사용).
+//   - left(왼쪽 글라이드): 꼬리는 오른쪽으로 늘어남 → 진하고 길게(더 잘 보이게).
+//   - right(오른쪽 이동): 꼬리는 왼쪽으로 늘어남 → 은은하게.
+const TRAIL_KEYFRAMES = `
+@keyframes preloader-trail-left {
+  0%   { opacity: 0;    transform: translate(0%, -50%) scaleX(0.3); }
+  26%  { opacity: 0.9;  transform: translate(0%, -50%) scaleX(0.92); }
+  100% { opacity: 0;    transform: translate(0%, -50%) scaleX(1.25); }
+}
+@keyframes preloader-trail-right {
+  0%   { opacity: 0;    transform: translate(-100%, -50%) scaleX(0.3); }
+  30%  { opacity: 0.5;  transform: translate(-100%, -50%) scaleX(0.9); }
+  100% { opacity: 0;    transform: translate(-100%, -50%) scaleX(1.15); }
+}`;
+
 export default function Preloader() {
   // 동작 줄이기 설정이면 처음부터 show=false → 아무것도 안 그리고 즉시 히어로.
   const [show, setShow] = useState(
@@ -129,7 +148,11 @@ export default function Preloader() {
     const dots = generateDots();
     dotsRef.current = {
       dots,
-      css: buildDriftKeyframes(dots) + PULSE_KEYFRAMES + ELLIPSIS_KEYFRAMES,
+      css:
+        buildDriftKeyframes(dots) +
+        PULSE_KEYFRAMES +
+        ELLIPSIS_KEYFRAMES +
+        TRAIL_KEYFRAMES,
     };
   }
 
@@ -203,7 +226,7 @@ export default function Preloader() {
       style={{
         "--logo-w": "clamp(300px, 32vw, 470px)", // 로고 표시·구체 도착점이 공유하는 단일 값
         opacity: fading ? 0 : 1,
-        transition: "opacity 0.8s ease-in-out",
+        transition: "opacity 0.65s ease-in-out",
         pointerEvents: fading ? "none" : "auto",
       }}
       aria-hidden="true"
@@ -258,6 +281,43 @@ export default function Preloader() {
           willChange: "transform",
         }}
       >
+        {/* 빛 잔상(왼쪽 글라이드용): 구체 오른쪽으로 늘어나는 꼬리 — 진하고 길게.
+            absolute + zIndex -1 → 캐리어 크기에 영향 없이 구체 뒤에 깔림. */}
+        <div
+          aria-hidden="true"
+          className="absolute top-1/2 left-1/2 rounded-full"
+          style={{
+            width: `calc(${ORB_SIZE} * 12)`,
+            height: `calc(${ORB_SIZE} * 0.5)`,
+            zIndex: -1,
+            transformOrigin: "left center",
+            background:
+              "linear-gradient(to right, rgba(255, 164, 17, 0.6) 0%, rgba(255, 164, 17, 0.14) 52%, transparent 100%)",
+            filter: "blur(4px)",
+            opacity: 0,
+            animation:
+              phase === "left" ? "preloader-trail-left 0.75s ease-out both" : "none",
+            willChange: "transform, opacity",
+          }}
+        />
+        {/* 빛 잔상(오른쪽 이동용): 구체 왼쪽으로 늘어나는 꼬리 — 은은하게. */}
+        <div
+          aria-hidden="true"
+          className="absolute top-1/2 left-1/2 rounded-full"
+          style={{
+            width: `calc(${ORB_SIZE} * 10)`,
+            height: `calc(${ORB_SIZE} * 0.45)`,
+            zIndex: -1,
+            transformOrigin: "right center",
+            background:
+              "linear-gradient(to left, rgba(255, 164, 17, 0.42) 0%, rgba(255, 164, 17, 0.1) 55%, transparent 100%)",
+            filter: "blur(5px)",
+            opacity: 0,
+            animation:
+              phase === "right" ? "preloader-trail-right 0.9s ease-out both" : "none",
+            willChange: "transform, opacity",
+          }}
+        />
         <div
           style={{
             width: ORB_SIZE,
@@ -269,27 +329,27 @@ export default function Preloader() {
             willChange: "transform, opacity",
           }}
         >
-          {/* 뒤 레이어: 넓은 오렌지 헤일로 (정적 blur) */}
+          {/* 뒤 레이어: 은은한 오렌지 헤일로 (정적 blur) — 로고 점처럼 작게 번지도록 2×·옅게 */}
           <div
             aria-hidden="true"
             className="absolute top-1/2 left-1/2 rounded-full"
             style={{
-              width: ORB_SIZE * 2.8,
-              height: ORB_SIZE * 2.8,
+              width: `calc(${ORB_SIZE} * 2)`,
+              height: `calc(${ORB_SIZE} * 2)`,
               transform: "translate(-50%, -50%)",
               background:
-                "radial-gradient(circle, rgba(255, 164, 17, 0.5) 0%, rgba(255, 164, 17, 0.18) 45%, transparent 70%)",
-              filter: "blur(10px)",
+                "radial-gradient(circle, rgba(255, 164, 17, 0.32) 0%, rgba(255, 164, 17, 0.1) 45%, transparent 70%)",
+              filter: "blur(6px)",
             }}
           />
-          {/* 코어: 밝은 중심(honey→gold)이 오렌지(--color-accent = #FFA411)로 번지다 투명으로 */}
+          {/* 코어: 흰 중심을 빼고, 골드 살짝 → 오렌지(--color-accent)로 균일하게 빛나는 작은 점 */}
           <div
             className="relative h-full w-full rounded-full"
             style={{
               background:
-                "radial-gradient(circle, var(--color-honey) 0%, var(--color-gold) 32%, var(--color-accent) 55%, rgba(255, 164, 17, 0.25) 72%, transparent 80%)",
+                "radial-gradient(circle, var(--color-gold) 0%, var(--color-accent) 45%, rgba(255, 164, 17, 0.3) 72%, transparent 82%)",
               boxShadow:
-                "0 0 18px 6px rgba(255, 164, 17, 0.45), 0 0 48px 18px rgba(255, 164, 17, 0.18)",
+                "0 0 8px 2px rgba(255, 164, 17, 0.4), 0 0 18px 5px rgba(255, 164, 17, 0.16)",
               animation: "preloader-pulse 3s ease-in-out infinite",
             }}
           />
@@ -317,7 +377,7 @@ export default function Preloader() {
             filter: logoVisible ? "blur(0px)" : "blur(14px)",
             transition: logoVisible
               ? "opacity 0.9s ease-out, filter 0.9s ease-out, transform 0.9s ease-out"
-              : "opacity 0.9s ease-in, filter 0.9s ease-in, transform 0.9s ease-in",
+              : "opacity 0.7s ease-in, filter 0.7s ease-in, transform 0.7s ease-in",
             willChange: "transform, opacity, filter",
           }}
         />
